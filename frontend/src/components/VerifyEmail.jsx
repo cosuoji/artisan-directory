@@ -15,7 +15,10 @@ const VerifyEmail = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await API.post("/auth/verify-email", { otp });
+      const res = await API.post("/auth/verify-email", {
+        email: email, // From localStorage
+        otp: otp,
+      });
       toast.success("Email verified! Redirecting...");
 
       // Remove temporary email storage
@@ -43,8 +46,13 @@ const VerifyEmail = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-6">
       <div className="max-w-md w-full bg-white p-8 rounded-2xl shadow-sm border border-gray-200 text-center">
-        <h2 className="text-2xl font-bold text-[#1E3A8A] mb-2">Check your email</h2>
-        <p className="text-gray-500 mb-6">We sent a 6-digit code to <br/><b>{email}</b></p>
+        <h2 className="text-2xl font-bold text-[#1E3A8A] mb-2">
+          Check your email
+        </h2>
+        <p className="text-gray-500 mb-6">
+          We sent a 6-digit code to <br />
+          <b>{email}</b>
+        </p>
 
         <form onSubmit={handleVerify} className="space-y-4">
           <input
@@ -63,7 +71,10 @@ const VerifyEmail = () => {
           </button>
         </form>
 
-        <button onClick={handleResend} className="mt-6 text-blue-600 font-medium hover:underline">
+        <button
+          onClick={handleResend}
+          className="mt-6 text-blue-600 font-medium hover:underline"
+        >
           Didn't get a code? Resend
         </button>
       </div>

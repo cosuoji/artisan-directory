@@ -1,40 +1,29 @@
-import nodemailer from "nodemailer";
+import { Resend } from "resend";
 import dotenv from "dotenv";
 
 dotenv.config();
 
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: process.env.SMTP_PORT,
-  secure: true, // false for 587, true for 465
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-  // This bypasses local certificate issues
-  tls: {
-    rejectUnauthorized: false,
-  },
-  connectionTimeout: 10000, // 10 seconds
-});
+// Initialize with your API Key
+const resend = new Resend(process.env.RESEND_API_KEY);
 
-console.log("Checking connection to AbegFix Mail Server...");
+export const sendEmail = async (to, subject, html) => {
+  try {
+    const { data, error } = await resend.emails.send({
+      from: "Abeg Fix <support@abegfix.com>", // Ensure this matches your verified domain
+      to: [to],
+      subject: subject,
+      html: html,
+    });
 
-transporter.verify((error, success) => {
-  if (error) {
-    console.log("❌ Connection Failed!");
-    console.error(error);
-  } else {
-    console.log("✅ Server is ready to take our messages!");
+    if (error) {
+      console.error("Resend internal error:", error);
+      throw new Error(error.message);
+    }
+
+    console.log("✅ Email sent successfully via Resend API:", data.id);
+    return data;
+  } catch (err) {
+    console.error("Failed to send email through Resend:", err.message);
+    throw err;
   }
-});
-const sendEmail = async (to, subject, html) => {
-  await transporter.sendMail({
-    from: `"Abeg Fix" <${process.env.SMTP_USER}>`,
-    to,
-    subject,
-    html,
-  });
 };
-
-export default sendEmail;

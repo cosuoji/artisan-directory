@@ -4,7 +4,7 @@ import jwt from "jsonwebtoken";
 import { check, validationResult } from "express-validator";
 import User from "../models/User.js";
 import { welcomeTemplate } from "../utils/emailTemplates.js";
-import sendEmail from "../utils/sendEmail.js";
+import { sendEmail } from "../utils/sendEmail.js";
 import {
   getMe,
   updateProfile,
@@ -232,29 +232,35 @@ router.post(
 );
 
 // @route   POST api/auth/verify-email
-router.post("/verify-email", protect, async (req, res) => {
-  const { otp } = req.body;
+// REMOVED 'protect' middleware
+router.post("/verify-email", async (req, res) => {
+  const { email, otp } = req.body; // Expect email from body now
 
   try {
-    const user = await User.findById(req.user.id);
+    // Find user by email instead of ID
+    const user = await User.findOne({ email });
 
     if (!user) return res.status(404).json({ msg: "User not found" });
     if (user.isEmailVerified)
       return res.status(400).json({ msg: "Email already verified" });
 
+    // Verify OTP and Expiry
     if (user.emailVerificationOTP !== otp || user.otpExpires < Date.now()) {
       return res.status(400).json({ msg: "Invalid or expired OTP" });
     }
 
-    // Mark as verified and clear OTP fields
     user.isEmailVerified = true;
     user.emailVerificationOTP = undefined;
     user.otpExpires = undefined;
     await user.save();
 
-    res.json({ msg: "Email verified successfully!", isEmailVerified: true });
+    return res.json({
+      msg: "Email verified successfully!",
+      isEmailVerified: true,
+    });
   } catch (err) {
-    res.status(500).send("Server error");
+    console.error(err);
+    return res.status(500).json({ msg: "Server error" });
   }
 });
 
