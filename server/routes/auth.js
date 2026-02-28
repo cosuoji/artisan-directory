@@ -70,21 +70,24 @@ router.post(
           "Verify your Abeg Fix Account",
           welcomeTemplate(user.firstName, otp, "Customer"),
         );
+        // Do NOT send a res.json here
       } catch (mailErr) {
         console.error("Email failed to send:", mailErr);
-        // We don't block registration if email fails, but we should log it
+        // Just log it. The user is already saved.
       }
 
+      // ONLY SEND ONE RESPONSE AT THE VERY END
       const token = jwt.sign(
         { id: user._id, role: user.role },
         process.env.JWT_SECRET,
         { expiresIn: "7d" },
       );
-      res
-        .status(201)
-        .json({ token, role: user.role, msg: "OTP sent to email" });
 
-      res.status(201).json({ token, role: user.role });
+      return res.status(201).json({
+        token,
+        role: user.role,
+        msg: "Registration successful. Check your email for OTP.",
+      });
     } catch (err) {
       console.error("Signup Error:", err);
       res.status(500).json({ msg: "Server error during registration" });
@@ -148,19 +151,26 @@ router.post(
         await sendEmail(
           user.email,
           "Verify your Abeg Fix Account",
-          otpTemplate(user.firstName, otp, "Customer"),
+          otpTemplate(user.firstName, otp, "Artisan"),
         );
+        // Do NOT send a res.json here
       } catch (mailErr) {
         console.error("Email failed to send:", mailErr);
-        // We don't block registration if email fails, but we should log it
+        // Just log it. The user is already saved.
       }
 
+      // ONLY SEND ONE RESPONSE AT THE VERY END
       const token = jwt.sign(
         { id: user._id, role: user.role },
         process.env.JWT_SECRET,
         { expiresIn: "7d" },
       );
-      res.json({ token, role: user.role });
+
+      return res.status(201).json({
+        token,
+        role: user.role,
+        msg: "Registration successful. Check your email for OTP.",
+      });
     } catch (err) {
       console.error(err);
       res.status(500).send("Server error");

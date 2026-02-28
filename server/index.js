@@ -6,6 +6,8 @@ import authRoutes from "./routes/auth.js";
 import userRoutes from "./routes/user.js"; // Don't forget the .js!
 import reviewRoutes from "./routes/reviewRoutes.js";
 import cron from "node-cron";
+import User from "./models/User.js";
+
 dotenv.config();
 const app = express();
 
@@ -35,6 +37,10 @@ mongoose
   .catch((err) => console.error("Database connection error:", err));
 
 // Routes (We will create these next)
+app.get("/health", (req, res) => {
+  res.status(200).json({ status: "OK" });
+});
+
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/reviews", reviewRoutes);

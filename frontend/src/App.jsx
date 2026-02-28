@@ -20,6 +20,7 @@ import CustomerProfile from "./pages/CustomerProfile";
 import ArtisanDashboard from "./pages/ArtisanDashboard";
 import ProfileRedirect from "./pages/ProfileRedirect";
 import ArtisanProfileView from "./pages/ArtisanProfileView";
+import Contact from "./pages/Contact";
 //Inner Pages
 import About from "./pages/innerpages/About.jsx";
 import Cookies from "./pages/innerpages/Cookies.jsx";
@@ -69,6 +70,7 @@ function App() {
             <Route path="/artisan/:id" element={<ArtisanProfileView />} />
             /**Inner Pages*/
             <Route path="/about" element={<About />} />
+            <Route path="/contact" element={<Contact />} />
             <Route path="/cookies" element={<Cookies />} />
             <Route path="/data-policy" element={<DataPolicy />} />
             <Route path="/disclaimer" element={<Disclaimer />} />
