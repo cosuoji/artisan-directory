@@ -40,7 +40,17 @@ const Directory = () => {
   }, [userLocation, user]); // Refetch if live GPS or user profile loads
 
   const fetchUserProfile = async () => {
+    // 1. Check if we even have a token locally
+    const token = localStorage.getItem("token");
+
+    // 2. If no token exists, silently exit the function. Do not call the API.
+    if (!token) {
+      console.log("No token found, skipping profile fetch for unlogged user.");
+      return;
+    }
+
     try {
+      // 3. We have a token, so it's safe to ask the server for data
       const res = await API.get("/auth/me");
       setUser(res.data);
       setFavorites(res.data.favorites || []);
