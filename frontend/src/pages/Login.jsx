@@ -2,11 +2,13 @@ import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import API from "../api/axios"; // Your custom Axios instance
 import toast from "react-hot-toast";
+import { useAuth } from "../context/AuthContext";
 
 const Login = () => {
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const { login } = useAuth(); // <-- Grab the login function
   const navigate = useNavigate();
 
   const handleLogin = async (e) => {
@@ -14,19 +16,17 @@ const Login = () => {
     setLoading(true);
 
     try {
-      // 1. Send credentials to your Node server
+      // 1. Send credentials
       const res = await API.post("/auth/login", { email, password });
 
-      // 2. Destructure the token and role from response
-      const { token, role } = res.data;
-
-      // 3. Save token for subsequent API calls
-      localStorage.setItem("token", token);
+      // 2. Use the Context Login (This handles storage + state)
+      login(res.data.token, res.data.user);
 
       toast.success("Welcome back!");
 
-      // 4. Role-based redirection logic
-      if (role === "artisan") {
+      // 3. Role-based redirection (Use the role from res.data.user for consistency)
+      const userRole = res.data.user.role;
+      if (userRole === "artisan") {
         navigate("/artisan-dashboard");
       } else {
         navigate("/customer-profile");

@@ -1,44 +1,15 @@
-import { useState, useEffect } from "react";
-import { Link, useNavigate, useLocation } from "react-router-dom";
-import API from "../api/axios";
+import { Link, useNavigate } from "react-router-dom";
 import logo from "../assets/logo.png";
 import toast from "react-hot-toast";
+import { useAuth } from "../context/AuthContext"; // Import our new hook
 
 const Navbar = () => {
-  const [user, setUser] = useState(null);
-  const [role, setRole] = useState(null);
+  // Grab everything we need from Context
+  const { user, isAuthenticated, logout } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation(); // To trigger re-check on navigation
-
-  useEffect(() => {
-    const checkUser = async () => {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        setUser(null);
-        setRole(null);
-        return;
-      }
-
-      try {
-        // Fetch current user details from our new backend endpoint
-        const { data } = await API.get("/auth/me");
-        setUser(data);
-        setRole(data.role);
-      } catch (err) {
-        // If token is expired or invalid, clear everything
-        localStorage.removeItem("token");
-        setUser(null);
-        setRole(null);
-      }
-    };
-
-    checkUser();
-  }, [location]); // Re-run check when the URL changes (e.g., after login/logout)
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    setUser(null);
-    setRole(null);
+    logout(); // This clears context + localStorage in one go
     toast.success("Logged out successfully");
     navigate("/");
   };
@@ -65,9 +36,10 @@ const Navbar = () => {
               Directory
             </Link>
 
-            {user ? (
+            {/* Use isAuthenticated instead of local state 'user' */}
+            {isAuthenticated ? (
               <>
-                {role === "customer" && (
+                {user?.role === "customer" && (
                   <Link
                     to="/favorites"
                     className="text-gray-600 hover:text-blue-700 text-sm md:text-base font-medium hidden sm:block"
@@ -78,7 +50,7 @@ const Navbar = () => {
 
                 <Link
                   to={
-                    role === "artisan"
+                    user?.role === "artisan"
                       ? "/artisan-dashboard"
                       : "/customer-profile"
                   }

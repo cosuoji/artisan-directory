@@ -6,6 +6,7 @@ import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import ScrollToTop from "./components/ScrollToTop";
 import VerifyEmail from "./components/VerifyEmail";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 // Import Pages
 import Home from "./pages/Home";
@@ -58,8 +59,14 @@ function App() {
             {/* The "Smart" Route */}
             <Route path="/profile" element={<ProfileRedirect />} />
             {/* The Specific Dashboards */}
-            <Route path="/artisan-dashboard" element={<ArtisanDashboard />} />
-            <Route path="/customer-profile" element={<CustomerProfile />} />
+            {/* Artisan Only Routes */}
+            <Route element={<ProtectedRoute allowedRoles={["artisan"]} />}>
+              <Route path="/artisan-dashboard" element={<ArtisanDashboard />} />
+            </Route>
+            {/* Customer Only Routes */}
+            <Route element={<ProtectedRoute allowedRoles={["customer"]} />}>
+              <Route path="/customer-profile" element={<CustomerProfile />} />
+            </Route>
             <Route path="/directory" element={<Directory />} />
             <Route path="/login" element={<Login />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />

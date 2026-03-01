@@ -20,7 +20,7 @@ export const sendEmail = async (to, subject, html) => {
       throw new Error(error.message);
     }
 
-    console.log("✅ Email sent successfully via Resend API:", data.id);
+    //console.log("✅ Email sent successfully via Resend API:", data.id);
     return data;
   } catch (err) {
     console.error("Failed to send email through Resend:", err.message);

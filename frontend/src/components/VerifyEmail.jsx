@@ -1,45 +1,68 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import API from "../api/axios";
 import toast from "react-hot-toast";
+import { useAuth } from "../context/AuthContext";
 
 const VerifyEmail = () => {
   const [otp, setOtp] = useState("");
+  const [countdown, setCountdown] = useState(0); // 0 means button is active
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { login } = useAuth(); // <-- Grab the login function
 
   // We can grab the email from localStorage if we saved it during signup
   const email = localStorage.getItem("email_to_verify");
+
+  useEffect(() => {
+    if (!email) {
+      toast.error("No email found to verify. Please sign up again.");
+      navigate("/signup");
+    }
+  }, [email, navigate]);
 
   const handleVerify = async (e) => {
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await API.post("/auth/verify-email", {
-        email: email, // From localStorage
-        otp: otp,
-      });
-      toast.success("Email verified! Redirecting...");
+      const res = await API.post("/auth/verify-email", { email, otp });
 
-      // Remove temporary email storage
+      // NEW: Use the context function! This instantly updates the whole app.
+      login(res.data.token, res.data.user);
+
+      toast.success("Email verified! Welcome to Abeg Fix.");
       localStorage.removeItem("email_to_verify");
 
-      // Redirect based on role (stored in JWT or returned from API)
-      const role = localStorage.getItem("user_role");
-      navigate(role === "artisan" ? "/artisan-dashboard" : "/directory");
+      // Redirect
+      navigate(
+        res.data.user.role === "artisan" ? "/artisan-dashboard" : "/directory",
+      );
     } catch (err) {
       toast.error(err.response?.data?.msg || "Invalid OTP");
     } finally {
       setLoading(false);
     }
   };
+  // Handle the countdown timer
+  useEffect(() => {
+    let timer;
+    if (countdown > 0) {
+      timer = setInterval(() => {
+        setCountdown((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [countdown]);
 
   const handleResend = async () => {
+    if (countdown > 0) return; // Block click if timer is active
+
     try {
       await API.post("/auth/resend-otp", { email });
-      toast.success("New code sent to your email!");
+      toast.success("New code sent!");
+      setCountdown(60); // Start 60s cooldown
     } catch (err) {
-      toast.error("Failed to resend. Please try again later.");
+      toast.error("Wait a bit before trying again.");
     }
   };
 
@@ -73,9 +96,12 @@ const VerifyEmail = () => {
 
         <button
           onClick={handleResend}
-          className="mt-6 text-blue-600 font-medium hover:underline"
+          disabled={countdown > 0}
+          className={`mt-6 font-medium ${countdown > 0 ? "text-gray-400 cursor-not-allowed" : "text-blue-600 hover:underline"}`}
         >
-          Didn't get a code? Resend
+          {countdown > 0
+            ? `Resend code in ${countdown}s`
+            : "Didn't get a code? Resend"}
         </button>
       </div>
     </div>

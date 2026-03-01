@@ -12,6 +12,7 @@ import {
   resetPassword,
 } from "../controllers/authController.js";
 import { protect, authorize } from "../middleware/auth.js";
+import { generateToken } from "../utils/generateToken.js";
 
 const router = express.Router();
 
@@ -151,7 +152,7 @@ router.post(
         await sendEmail(
           user.email,
           "Verify your Abeg Fix Account",
-          otpTemplate(user.firstName, otp, "Artisan"),
+          welcomeTemplate(user.firstName, otp, "Artisan"),
         );
         // Do NOT send a res.json here
       } catch (mailErr) {
@@ -195,44 +196,43 @@ router.post(
     const { email, password } = req.body;
 
     try {
-      // 1. Check if user exists
-      let user = await User.findOne({ email });
-      if (!user) {
-        return res.status(400).json({ msg: "Invalid Credentials" });
-      }
-
-      // 2. Compare passwords
-      const isMatch = await bcrypt.compare(password, user.password);
-      if (!isMatch) {
-        return res.status(400).json({ msg: "Invalid Credentials" });
-      }
-
-      // --- NEW: VERIFICATION CHECK ---
-      if (!user.isEmailVerified) {
-        return res.status(403).json({
-          msg: "Please verify your email to login.",
-          unverified: true,
-        });
-      }
-
-      // 3. Create and return JWT
-      const token = jwt.sign(
-        { id: user._id, role: user.role },
-        process.env.JWT_SECRET,
-        { expiresIn: "7d" },
+      // 1. Find user and EXPLICITLY include password if your model hides it by default
+      const user = await User.findOne({ email: email.toLowerCase() }).select(
+        "+password",
       );
 
-      // Sending both token and role so the frontend knows where to redirect
-      res.json({ token, role: user.role });
+      if (!user) {
+        return res
+          .status(401)
+          .json({ msg: "Invalid credentials (User not found)" });
+      }
+
+      // 2. Check if verified (Don't let unverified users log in!)
+      if (!user.isEmailVerified) {
+        return res.status(403).json({ msg: "Please verify your email first." });
+      }
+
+      // 3. Compare hashed password
+      const isMatch = await bcrypt.compare(password, user.password);
+      if (!isMatch) {
+        return res
+          .status(401)
+          .json({ msg: "Invalid credentials (Wrong password)" });
+      }
+
+      // 4. Generate Token and Send Response
+      const token = generateToken(user._id);
+      res.json({
+        token,
+        user: { id: user._id, role: user.role, firstName: user.firstName },
+      });
     } catch (err) {
-      console.error(err.message);
       res.status(500).send("Server error");
     }
   },
 );
 
 // @route   POST api/auth/verify-email
-// REMOVED 'protect' middleware
 router.post("/verify-email", async (req, res) => {
   const { email, otp } = req.body; // Expect email from body now
 
@@ -253,10 +253,18 @@ router.post("/verify-email", async (req, res) => {
     user.emailVerificationOTP = undefined;
     user.otpExpires = undefined;
     await user.save();
+    // NEW: Generate a fresh token for auto-login
+    const token = generateToken(user._id); // Use your existing token generator
 
+    // NEW: Send back the token and user role so the frontend can route them
     return res.json({
       msg: "Email verified successfully!",
-      isEmailVerified: true,
+      token: token,
+      user: {
+        id: user._id,
+        role: user.role,
+        firstName: user.firstName,
+      },
     });
   } catch (err) {
     console.error(err);
@@ -295,10 +303,17 @@ router.put("/update-password", protect, async (req, res) => {
 // @route   GET api/auth/me
 router.get("/me", protect, async (req, res) => {
   try {
+    // req.user.id comes from the 'protect' middleware
     const user = await User.findById(req.user.id).select("-password");
+
+    if (!user) {
+      return res.status(404).json({ msg: "User not found" });
+    }
+
     res.json(user);
   } catch (err) {
-    res.status(500).send("Server error");
+    console.error(err.message);
+    res.status(500).send("Server Error");
   }
 });
 

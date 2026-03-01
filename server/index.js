@@ -7,9 +7,11 @@ import userRoutes from "./routes/user.js"; // Don't forget the .js!
 import reviewRoutes from "./routes/reviewRoutes.js";
 import cron from "node-cron";
 import User from "./models/User.js";
+import rateLimit from "express-rate-limit";
 
 dotenv.config();
 const app = express();
+app.set("trust proxy", 1); // Crucial for Render/Netlify/Cloudflare
 
 // Middleware
 app.use(cors());
@@ -30,20 +32,44 @@ cron.schedule("0 0 * * *", async () => {
   }
 });
 
+// Global limiter: Max 100 requests per 15 mins
+const globalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  message: { msg: "Too many requests, please try again later." },
+  standardHeaders: true, // Returns RateLimit-Limit headers
+  legacyHeaders: false,
+});
+
+// Stricter limiter for Auth (Signups/OTP): Max 5 attempts per hour
+const authLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 5,
+  message: { msg: "Too many auth attempts. Please wait an hour." },
+});
+
 // Database Connection
 mongoose
   .connect(process.env.MONGODB_URI)
   .then(() => console.log("🔥 MongoDB Connected"))
   .catch((err) => console.error("Database connection error:", err));
 
-// Routes (We will create these next)
+// 1. Apply Global Limiter to ALL /api routes
+app.use("/api", globalLimiter);
+
+// 2. Apply Strict Auth Limiter specifically to Auth routes
+// This stacks on top of the global one
+//app.use("/api/auth", authLimiter, authRoutes);
+app.use("/api/auth", authRoutes);
+
+// 3. Regular routes (only governed by globalLimiter)
+app.use("/api/users", userRoutes);
+app.use("/api/reviews", reviewRoutes);
+
+// Health check (usually left without a limiter so monitoring tools don't get blocked)
 app.get("/health", (req, res) => {
   res.status(200).json({ status: "OK" });
 });
-
-app.use("/api/auth", authRoutes);
-app.use("/api/users", userRoutes);
-app.use("/api/reviews", reviewRoutes);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
