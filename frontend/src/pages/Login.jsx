@@ -3,6 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import API from "../api/axios"; // Your custom Axios instance
 import toast from "react-hot-toast";
 import { useAuth } from "../context/AuthContext";
+import useSEO from "../hooks/useSEO";
 
 const Login = () => {
   const [loading, setLoading] = useState(false);
@@ -10,6 +11,8 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const { login } = useAuth(); // <-- Grab the login function
   const navigate = useNavigate();
+
+  useSEO({ title: "Login" });
 
   const handleLogin = async (e) => {
     e.preventDefault();

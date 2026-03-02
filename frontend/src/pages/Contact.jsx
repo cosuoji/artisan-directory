@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import toast from "react-hot-toast";
+import useSEO from "../hooks/useSEO";
 
 const Contact = () => {
   const [loading, setLoading] = useState(false);
@@ -9,6 +10,8 @@ const Contact = () => {
     subject: "",
     message: "",
   });
+
+  useSEO({ title: "Contact Us" });
 
   const handleSubmit = async (e) => {
     e.preventDefault();

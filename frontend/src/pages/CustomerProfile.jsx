@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import API from "../api/axios";
 import toast from "react-hot-toast";
 import { Link } from "react-router-dom";
+import useSEO from "../hooks/useSEO";
 
 const CustomerProfile = () => {
   const [activeTab, setActiveTab] = useState("profile");
@@ -17,6 +18,11 @@ const CustomerProfile = () => {
   useEffect(() => {
     fetchProfile();
   }, []);
+
+  useSEO({
+    title: `Customer Profile - ${profile.firstName} ${profile.lastName}`,
+    ogType: "profile",
+  });
 
   // In MERN, we can often get profile and favorites in one call,
   // but we'll stick to your tab-based fetch for efficiency.

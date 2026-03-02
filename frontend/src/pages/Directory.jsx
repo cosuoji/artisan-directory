@@ -3,6 +3,7 @@ import API from "../api/axios";
 import toast from "react-hot-toast";
 import { Link } from "react-router-dom";
 import BackToTopButton from "../components/BackToTopButton";
+import useSEO from "../hooks/useSEO";
 
 const Directory = () => {
   const [artisans, setArtisans] = useState([]);
@@ -33,6 +34,12 @@ const Directory = () => {
     };
     initData();
   }, []);
+
+  useSEO({
+    title: "Artisan Directory",
+    description: `Search for artisans in your area. Verified on Abeg Fix.`,
+    ogType: "directory",
+  });
 
   // --- 2. RE-FETCH WHEN LOCATION CHANGES ---
   useEffect(() => {

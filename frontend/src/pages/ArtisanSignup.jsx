@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import API from "../api/axios"; // Import your Axios instance
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
+import useSEO from "../hooks/useSEO";
 
 const ArtisanSignup = () => {
   const navigate = useNavigate();
@@ -18,6 +19,8 @@ const ArtisanSignup = () => {
     category: "",
     whatsapp: "",
   });
+
+  useSEO({ title: "Artisan Signup" });
 
   const handleVerifyNIN = async () => {
     if (formData.nin.length < 11)

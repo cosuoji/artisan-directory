@@ -1,4 +1,7 @@
+import useSEO from "../../hooks/useSEO";
+
 export default function DataPolicy() {
+  useSEO({ title: "Data Policy" });
   return (
     <div className="max-w-4xl mx-auto bg-white shadow p-6 rounded-xl mt-10 mb-10 text-gray-800">
       <h1 className="text-3xl font-semibold mb-6">

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import API from "../api/axios";
 import toast from "react-hot-toast";
 import { useAuth } from "../context/AuthContext";
+import useSEO from "../hooks/useSEO";
 
 const VerifyEmail = () => {
   const [otp, setOtp] = useState("");
@@ -10,6 +11,8 @@ const VerifyEmail = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { login } = useAuth(); // <-- Grab the login function
+
+  useSEO({ title: "Verify Email" });
 
   // We can grab the email from localStorage if we saved it during signup
   const email = localStorage.getItem("email_to_verify");

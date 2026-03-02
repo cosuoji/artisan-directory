@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import API from "../api/axios";
 import toast from "react-hot-toast";
+import useSEO from "../hooks/useSEO";
 
 const UpdatePassword = () => {
   const [password, setPassword] = useState("");
@@ -27,6 +28,8 @@ const UpdatePassword = () => {
       setLoading(false);
     }
   };
+
+  useSEO({ title: "Update Password" });
 
   return (
     <div className="min-h-[70vh] flex items-center justify-center py-12 px-6 bg-gray-50">

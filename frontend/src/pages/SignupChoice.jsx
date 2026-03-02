@@ -1,7 +1,9 @@
 import React from "react";
 import { Link } from "react-router-dom";
+import useSEO from "../hooks/useSEO";
 
 const SignupChoice = () => {
+  useSEO({ title: "Signup Choice" });
   return (
     <div className="min-h-[80vh] flex items-center justify-center py-12 px-6 bg-gray-50">
       <div className="max-w-4xl w-full text-center">

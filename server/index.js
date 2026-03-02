@@ -59,8 +59,8 @@ app.use("/api", globalLimiter);
 
 // 2. Apply Strict Auth Limiter specifically to Auth routes
 // This stacks on top of the global one
-//app.use("/api/auth", authLimiter, authRoutes);
-app.use("/api/auth", authRoutes);
+app.use("/api/auth", authLimiter, authRoutes);
+//app.use("/api/auth", authRoutes);
 
 // 3. Regular routes (only governed by globalLimiter)
 app.use("/api/users", userRoutes);

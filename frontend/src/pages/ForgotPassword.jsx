@@ -1,8 +1,10 @@
 import React, { useState } from "react";
 import API from "../api/axios"; // Your Axios instance
 import toast from "react-hot-toast";
+import useSEO from "../hooks/useSEO";
 
 const ForgotPassword = () => {
+  useSEO({ title: "Forgot Password" });
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");

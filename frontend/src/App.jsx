@@ -27,7 +27,7 @@ import About from "./pages/innerpages/About.jsx";
 import Cookies from "./pages/innerpages/Cookies.jsx";
 import DataPolicy from "./pages/innerpages/DataPolicy.jsx";
 import Disclaimer from "./pages/innerpages/Disclaimer.jsx";
-import DMCA from "./pages/innerpages/DMCA.jsx";
+import CopyrightPolicy from "./pages/innerpages/CopyrightPolicy.jsx";
 import EarningsDisclaimer from "./pages/innerpages/EarningsDisclaimer.jsx";
 import FAQ from "./pages/innerpages/FAQ.jsx";
 import Guidelines from "./pages/innerpages/Guidelines.jsx";
@@ -81,7 +81,7 @@ function App() {
             <Route path="/cookies" element={<Cookies />} />
             <Route path="/data-policy" element={<DataPolicy />} />
             <Route path="/disclaimer" element={<Disclaimer />} />
-            <Route path="/dmca" element={<DMCA />} />
+            <Route path="/copyright-policy" element={<CopyrightPolicy />} />
             <Route
               path="/earnings-disclaimer"
               element={<EarningsDisclaimer />}

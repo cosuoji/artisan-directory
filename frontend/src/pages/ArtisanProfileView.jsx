@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import API from "../api/axios";
 import toast from "react-hot-toast";
+import useSEO from "../hooks/useSEO";
 
 const ArtisanProfileView = () => {
   const { id } = useParams();
@@ -84,6 +85,15 @@ const ArtisanProfileView = () => {
     return <div className="p-20 text-center">Artisan not found.</div>;
 
   const profile = artisan.artisanProfile || {};
+
+  useSEO({
+    title: artisan
+      ? `${artisan.firstName} - ${artisan.artisanProfile.category}`
+      : "Loading Artisan...",
+    description: `Hire ${artisan?.firstName}, a professional ${artisan.artisanProfile.category}}. Verified on Abeg Fix.`,
+    ogImage: artisan?.profileImage || "/default-preview.png",
+    ogType: "profile",
+  });
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-12">

@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import API from "../api/axios";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
+import useSEO from "../hooks/useSEO";
 
 const CustomerSignup = () => {
   const navigate = useNavigate();
@@ -17,6 +18,8 @@ const CustomerSignup = () => {
     // We add coordinates in case they use the GPS feature
     coordinates: null,
   });
+
+  useSEO({ title: "Customer Signup" });
 
   // --- THE NEW GEOLOCATION FUNCTION ---
   const handleGetLocation = () => {

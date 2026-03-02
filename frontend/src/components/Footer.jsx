@@ -75,8 +75,8 @@ const Footer = () => {
                 </Link>
               </li>
               <li>
-                <Link to="/dmca" className="hover:text-blue-400">
-                  DMCA Policy
+                <Link to="/copyright-policy" className="hover:text-blue-400">
+                  Copyright Policy
                 </Link>
               </li>
               <li>
@@ -121,7 +121,7 @@ const Footer = () => {
           <div className="flex justify-center space-x-6 items-center">
             {/* Email */}
             <a
-              href="mailto:hello@abegfix.com"
+              href="mailto:support@abegfix.com"
               aria-label="Email"
               className="hover:text-blue-400 transition"
             >
@@ -142,7 +142,7 @@ const Footer = () => {
             </a>
             {/* WhatsApp */}
             <a
-              href="https://wa.me/2348012345678"
+              href="https://wa.me/2348162317196"
               target="_blank"
               rel="noopener noreferrer"
               aria-label="WhatsApp"
@@ -176,7 +176,7 @@ const Footer = () => {
             </a>
             {/* X (Twitter) */}
             <a
-              href="https://x.com/abegfix"
+              href="https://x.com/abeg_fix"
               target="_blank"
               rel="noopener noreferrer"
               aria-label="X (Twitter)"

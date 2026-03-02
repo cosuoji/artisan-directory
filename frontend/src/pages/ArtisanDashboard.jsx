@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import API from "../api/axios";
 import toast from "react-hot-toast";
 import ArtisanLocationPicker from "../components/ArtisanLocationPicker";
+import useSEO from "../hooks/useSEO";
 
 const ArtisanDashboard = () => {
   const [activeTab, setActiveTab] = useState("profile");
@@ -19,6 +20,15 @@ const ArtisanDashboard = () => {
     portfolio: [],
     address: "", // New field
     location: { type: "Point", coordinates: [3.3792, 6.5244] }, // Default to Lagos [lng, lat]
+  });
+
+  console.log(user);
+
+  useSEO({
+    title: user
+      ? `${user.firstName} - ${user.artisanProfile.category} | Artisan Dashboard`
+      : "Loading Artisan...",
+    ogType: "profile",
   });
 
   const [passwords, setPasswords] = useState({
