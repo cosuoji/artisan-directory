@@ -16,22 +16,40 @@ const ArtisanProfileView = () => {
   const [comment, setComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
+  useSEO({
+    title: artisan
+      ? `${artisan?.firstName} - ${artisan?.artisanProfile?.category}`
+      : "Loading Artisan...",
+    description: `Hire ${artisan?.firstName}, a professional ${artisan?.artisanProfile?.category || "Artisan"}. Verified on Abeg Fix.`,
+    ogImage: artisan?.profileImage || "/default-preview.png",
+    ogType: "profile",
+  });
+
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // 1. Fetch Artisan Data
+        // 1. Fetch Artisan Data (Public)
         const artisanRes = await API.get(`/users/artisan/${id}`);
         setArtisan(artisanRes.data);
 
-        // 2. Fetch Reviews for this artisan
+        // 2. Fetch Reviews (Public)
         const reviewsRes = await API.get(`/reviews/artisan/${id}`);
         setReviews(reviewsRes.data);
 
-        // 3. Get current logged-in user (to check role)
-        const userRes = await API.get("/auth/me");
-        setCurrentUser(userRes.data);
+        // 3. ONLY get current user IF they are logged in
+        const token = localStorage.getItem("token");
+        if (token) {
+          try {
+            const userRes = await API.get("/auth/me");
+            setCurrentUser(userRes.data);
+          } catch (authErr) {
+            console.log("Token invalid or expired, staying as guest.");
+            // Don't throw here, just let them be a guest
+          }
+        }
       } catch (err) {
         console.error("Fetch error:", err);
+        toast.error("Could not load artisan profile.");
       } finally {
         setLoading(false);
       }
@@ -85,15 +103,6 @@ const ArtisanProfileView = () => {
     return <div className="p-20 text-center">Artisan not found.</div>;
 
   const profile = artisan.artisanProfile || {};
-
-  useSEO({
-    title: artisan
-      ? `${artisan.firstName} - ${artisan.artisanProfile.category}`
-      : "Loading Artisan...",
-    description: `Hire ${artisan?.firstName}, a professional ${artisan.artisanProfile.category}}. Verified on Abeg Fix.`,
-    ogImage: artisan?.profileImage || "/default-preview.png",
-    ogType: "profile",
-  });
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-12">
