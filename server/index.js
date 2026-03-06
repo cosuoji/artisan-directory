@@ -6,7 +6,7 @@ import authRoutes from "./routes/auth.js";
 import userRoutes from "./routes/user.js"; // Don't forget the .js!
 import paymentRoutes from "./routes/payments.js";
 import reviewRoutes from "./routes/reviewRoutes.js";
-import webhookRoutes from "./routes/webhookRoutes.js";
+import webhookRoutes from "./routes/webhook.js";
 import cron from "node-cron";
 import User from "./models/User.js";
 import rateLimit from "express-rate-limit";
