@@ -84,7 +84,7 @@ router.post(
     */
 
       // MOCK DATA FOR TESTING:
-      const mockNINData = { firstName: "John", lastName: "Doe" };
+      const mockNINData = { firstName: "Chibueze", lastName: "Osuoji" };
       const { firstName, lastName } = mockNINData;
 
       // 2. COMPARE WITH ACCOUNT DATA
