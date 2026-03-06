@@ -67,8 +67,8 @@ app.use("/api/auth", authRoutes);
 // 3. Regular routes (only governed by globalLimiter)
 app.use("/api/users", userRoutes);
 app.use("/api/reviews", reviewRoutes);
-app.use("/api/verify", paymentRoutes);
-app.use("/api/webhooks/", webhookRoutes);
+app.use("/api/payments", paymentRoutes);
+app.use("/api/webhooks", webhookRoutes);
 
 // Health check (usually left without a limiter so monitoring tools don't get blocked)
 app.get("/health", (req, res) => {
