@@ -182,21 +182,30 @@ const ArtisanDashboard = () => {
     }
   };
 
-  const handlePaymentSuccess = async (reference) => {
+  const handlePaymentSuccess = async (reference, verifiedNin) => {
+    setLoading(true);
     try {
-      // 1. Verify on backend (crucial for security)
-      const res = await API.post("/payments/verify", {
+      const res = await API.post("/payments", {
         reference: reference.reference,
         type: modalConfig.type,
+        nin: verifiedNin,
       });
 
-      toast.success(res.data.msg);
+      // Custom messages based on type
+      if (modalConfig.type === "pro") {
+        toast.success("🚀 You're now a PRO! 30 slots unlocked.", {
+          duration: 5000,
+        });
+      } else {
+        toast.success("✅ Identity Verified! Badge added to profile.");
+      }
+
       setModalConfig({ ...modalConfig, isOpen: false });
-      getProfile(); // Refresh dashboard to show new tier/verified status
+      await getProfile(); // This triggers the UI refresh
     } catch (err) {
-      toast.error(
-        "Payment verified, but account update failed. Contact support.",
-      );
+      toast.error(err.response?.data?.msg || "Update failed");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -606,6 +615,8 @@ const ArtisanDashboard = () => {
         type={modalConfig.type}
         userEmail={user?.email}
         userId={user?._id}
+        userFirstName={user?.firstName} // Pass names for the NIN logic
+        userLastName={user?.lastName}
         onClose={() => setModalConfig({ ...modalConfig, isOpen: false })}
         onSuccess={handlePaymentSuccess}
       />

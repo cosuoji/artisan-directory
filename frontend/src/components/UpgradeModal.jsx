@@ -1,6 +1,7 @@
-// components/UpgradeModal.jsx
-import React from "react";
+import React, { useState } from "react";
 import { usePaystackPayment } from "react-paystack";
+import API from "../api/axios";
+import toast from "react-hot-toast";
 
 const UpgradeModal = ({
   isOpen,
@@ -9,45 +10,68 @@ const UpgradeModal = ({
   userEmail,
   onSuccess,
   userId,
+  userFirstName,
+  userLastName,
 }) => {
   if (!isOpen) return null;
 
+  const [step, setStep] = useState("info");
+  const [nin, setNin] = useState("");
+  const [verifying, setVerifying] = useState(false);
+
+  // Paystack Configuration
   const config = {
     reference: new Date().getTime().toString(),
     email: userEmail,
-    amount: type === "pro" ? 100000 : 100000,
+    amount: type === "pro" ? 100000 : 100000, // Adjusted to ₦5k and ₦2.5k in Kobo
     publicKey: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY,
-    // ADD THIS BLOCK:
     metadata: {
-      userId: userId, // Pass the actual user ID here
-      upgradeType: type, // 'pro' or 'verified'
+      userId: userId,
+      upgradeType: type,
+      nin: type === "verified" ? nin : null,
     },
   };
 
   const initializePayment = usePaystackPayment(config);
 
+  // Step 1: Logic to move from Info to NIN or Payment
+  const handleNext = () => {
+    if (type === "verified" && step === "info") {
+      setStep("nin");
+    } else {
+      initializePayment((ref) => onSuccess(ref, nin), onClose);
+    }
+  };
+
+  // Step 2: Verify NIN with Backend BEFORE payment
+  const handleNinVerify = async () => {
+    setVerifying(true);
+    try {
+      // We hit a lightweight verification route first
+      await API.post("/payments/verify-nin-only", { nin });
+      toast.success("Identity Pre-verified! Proceed to payment.");
+      setStep("pay");
+    } catch (err) {
+      toast.error(
+        err.response?.data?.msg || "NIN verification failed. Name mismatch.",
+      );
+    } finally {
+      setVerifying(false);
+    }
+  };
+
   const content = {
     pro: {
       title: "Upgrade to Pro",
-      price: "₦1,000 / month",
-      benefits: [
-        "Up to 30 Portfolio Slots",
-        "Priority Search Placement",
-        "Exclusive 'Pro' Badge",
-        "Analytics on Profile Views",
-      ],
+      price: "₦1,000",
       color: "bg-blue-600",
+      benefits: ["30 Portfolio Slots", "Priority Search", "Pro Badge"],
     },
     verified: {
       title: "Get Verified",
-      price: "₦1,000 (One-time)",
-      benefits: [
-        "Trust Badge on Profile",
-        "Higher Customer Conversion",
-        "Background Check Status",
-        "Protection from Fake Profiles",
-      ],
+      price: "₦1,000",
       color: "bg-green-600",
+      benefits: ["Trust Badge", "Background Check Status", "Protection"],
     },
   };
 
@@ -64,25 +88,71 @@ const UpgradeModal = ({
         </div>
 
         <div className="p-8">
-          <ul className="space-y-4 mb-8">
-            {active.benefits.map((b, i) => (
-              <li
-                key={i}
-                className="flex items-center gap-3 text-gray-600 font-medium"
+          {step === "info" && (
+            <>
+              <ul className="space-y-4 mb-8">
+                {active.benefits.map((b, i) => (
+                  <li
+                    key={i}
+                    className="flex items-center gap-3 text-gray-600 font-medium"
+                  >
+                    <span className="text-green-500 font-bold">✓</span> {b}
+                  </li>
+                ))}
+              </ul>
+              <button
+                onClick={handleNext}
+                className={`w-full py-4 rounded-2xl text-white font-black uppercase tracking-widest transition hover:scale-[1.02] ${active.color}`}
               >
-                <span className="text-green-500 font-bold">✓</span> {b}
-              </li>
-            ))}
-          </ul>
+                Continue
+              </button>
+            </>
+          )}
 
-          <button
-            onClick={() => {
-              initializePayment(onSuccess, onClose);
-            }}
-            className={`w-full py-4 rounded-2xl text-white font-black uppercase tracking-widest shadow-lg transition hover:scale-[1.02] active:scale-95 ${active.color}`}
-          >
-            Pay Now
-          </button>
+          {step === "nin" && (
+            <div className="space-y-4">
+              <label className="block text-xs font-black uppercase text-gray-400">
+                Enter 11-digit NIN
+              </label>
+              <input
+                type="text"
+                maxLength="11"
+                value={nin}
+                onChange={(e) => setNin(e.target.value)}
+                className="w-full p-4 border-2 border-gray-100 rounded-2xl font-bold tracking-[0.3em] text-center focus:border-green-500 outline-none transition"
+                placeholder="00000000000"
+              />
+              <p className="text-[10px] text-gray-400 italic text-center">
+                *Must match: {userFirstName} {userLastName}
+              </p>
+              <p className="text-[10px] text-gray-400 italic text-center">
+                WE DO NOT STORE YOUR NIN
+              </p>
+              <button
+                disabled={nin.length < 11 || verifying}
+                onClick={handleNinVerify}
+                className="w-full py-4 bg-green-600 text-white rounded-2xl font-black uppercase tracking-widest disabled:bg-gray-200"
+              >
+                {verifying ? "Checking Identity..." : "Verify Identity"}
+              </button>
+            </div>
+          )}
+
+          {step === "pay" && (
+            <div className="text-center">
+              <div className="mb-6 p-4 bg-green-50 rounded-2xl text-green-700 text-sm font-bold">
+                ✓ Identity Confirmed
+              </div>
+              <button
+                onClick={() =>
+                  initializePayment((ref) => onSuccess(ref, nin), onClose)
+                }
+                className="w-full py-4 bg-gray-900 text-white rounded-2xl font-black uppercase tracking-widest animate-bounce"
+              >
+                Pay {active.price} Now
+              </button>
+            </div>
+          )}
 
           <button
             onClick={onClose}

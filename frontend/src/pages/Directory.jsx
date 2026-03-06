@@ -163,7 +163,7 @@ const Directory = () => {
             Artisan Directory
           </h1>
           <p className="text-gray-500 text-sm font-medium">
-            Showing {filteredArtisans.length} verified experts near you
+            Showing {filteredArtisans.length} artisans near you
           </p>
         </div>
 
