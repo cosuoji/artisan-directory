@@ -135,25 +135,41 @@ const Directory = () => {
   };
 
   // --- FILTERING (Frontend fallback for search/rating) ---
-  const filteredArtisans = artisans.filter((artisan) => {
-    const profile = artisan.artisanProfile || {};
-    const matchesSearch =
-      searchTerm === "" ||
-      profile.businessName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      artisan.firstName?.toLowerCase().includes(searchTerm.toLowerCase());
-    // Note: Backend handles Category filtering now, but we keep this as backup
-    const matchesSkill =
-      skillSearch === "" ||
-      profile.category?.toLowerCase().includes(skillSearch.toLowerCase());
+  // --- UPDATED SORTING LOGIC ---
+  // We filter first, THEN sort so Pro users always jump to the top of the current results
+  const filteredAndSortedArtisans = artisans
+    .filter((artisan) => {
+      const profile = artisan.artisanProfile || {};
+      const matchesSearch =
+        searchTerm === "" ||
+        profile.businessName
+          ?.toLowerCase()
+          .includes(searchTerm.toLowerCase()) ||
+        artisan.firstName?.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesRating = (profile.rating || 0) >= filterRating;
-    const matchesVerified = !filterVerifiedOnly || profile.isVerified === true;
+      const matchesSkill =
+        skillSearch === "" ||
+        profile.category?.toLowerCase().includes(skillSearch.toLowerCase());
 
-    return matchesSearch && matchesSkill && matchesRating && matchesVerified;
-  });
+      const matchesRating = (profile.rating || 0) >= filterRating;
+      const matchesVerified =
+        !filterVerifiedOnly || profile.isVerified === true;
 
-  const displayedArtisans = filteredArtisans.slice(0, visibleCount);
+      return matchesSearch && matchesSkill && matchesRating && matchesVerified;
+    })
+    .sort((a, b) => {
+      // 1. Pro Tier takes absolute priority
+      const aPro = a.artisanProfile?.subscriptionTier === "pro" ? 1 : 0;
+      const bPro = b.artisanProfile?.subscriptionTier === "pro" ? 1 : 0;
+      if (bPro !== aPro) return bPro - aPro;
 
+      // 2. Distance is the secondary sort (if distance exists)
+      if (a.distance && b.distance) return a.distance - b.distance;
+
+      return 0;
+    });
+
+  const displayedArtisans = filteredAndSortedArtisans.slice(0, visibleCount);
   return (
     <div className="max-w-[1600px] mx-auto px-4 py-8 bg-gray-50 min-h-screen">
       {/* --- HEADER --- */}
@@ -163,7 +179,7 @@ const Directory = () => {
             Artisan Directory
           </h1>
           <p className="text-gray-500 text-sm font-medium">
-            Showing {filteredArtisans.length} artisans near you
+            Showing {filteredAndSortedArtisans.length} artisans near you
           </p>
         </div>
 
@@ -231,96 +247,130 @@ const Directory = () => {
       ) : (
         <>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-            {displayedArtisans.map((artisan) => (
-              <div
-                key={artisan._id}
-                className="bg-white border border-gray-100 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group flex flex-col"
-              >
-                {/* Image Section */}
-                <div className="h-10 bg-gray-100 relative">
-                  <div className="absolute top-2 right-2 bg-black/80 text-white px-2 py-1 rounded text-[10px] font-black">
-                    ★ {artisan.artisanProfile?.rating?.toFixed(1) || "5.0"}
-                  </div>
-                  <button
-                    onClick={() => handleFavoriteClick(artisan._id)}
-                    className="absolute top-2 left-2 p-2 bg-white rounded-full shadow-lg"
-                  >
-                    <svg
-                      className={`w-3 h-3 ${favorites.includes(artisan._id) ? "text-red-500 fill-current" : "text-gray-300"}`}
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="3"
-                    >
-                      <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                    </svg>
-                  </button>
-                </div>
+            {displayedArtisans.map((artisan) => {
+              const isPro = artisan.artisanProfile?.subscriptionTier === "pro";
+              const isVerified = artisan.artisanProfile?.isVerified;
 
-                {/* Content */}
-                <div className="p-4 flex flex-col flex-grow">
-                  <p className="text-[10px] font-black uppercase text-blue-600 mb-1">
-                    {artisan.artisanProfile?.category}
-                  </p>
-                  <h3 className="text-sm font-bold text-gray-900 truncate flex items-center gap-1">
-                    {" "}
-                    {artisan.artisanProfile?.businessName || artisan.firstName}
-                    {/* THE GREEN TICK */}
-                    {artisan.artisanProfile?.isVerified && (
-                      <span
-                        className="text-green-500"
-                        title="Verified Professional"
+              return (
+                <div
+                  key={artisan._id}
+                  className={`relative bg-white border rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 group flex flex-col ${
+                    isPro
+                      ? "border-blue-500 ring-1 ring-blue-500/20 shadow-blue-50"
+                      : "border-gray-100"
+                  }`}
+                >
+                  {/* --- PRO RIBBON --- */}
+                  {isPro && (
+                    <div className="absolute top-3 -right-7 w-24 bg-blue-600 text-white text-[8px] font-black uppercase tracking-tighter py-1 text-center rotate-45 z-10 shadow-md">
+                      PRO
+                    </div>
+                  )}
+
+                  {/* Image Section */}
+                  <div className="h-10 bg-gray-100 relative overflow-hidden">
+                    <div className="absolute top-2 right-2 bg-black/80 text-white px-2 py-1 rounded text-[10px] font-black z-20">
+                      ★ {artisan.artisanProfile?.rating?.toFixed(1) || "5.0"}
+                    </div>
+
+                    {/* Favorite Button */}
+                    <button
+                      onClick={() => handleFavoriteClick(artisan._id)}
+                      className="absolute top-2 left-2 p-2 bg-white/90 backdrop-blur-sm rounded-full shadow-lg z-20 hover:scale-110 transition"
+                    >
+                      <svg
+                        className={`w-3 h-3 ${favorites.includes(artisan._id) ? "text-red-500 fill-current" : "text-gray-400"}`}
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="3"
                       >
-                        <svg
-                          className="w-4 h-4"
-                          fill="currentColor"
-                          viewBox="0 0 20 20"
-                        >
-                          <path
-                            fillRule="evenodd"
-                            d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
-                      </span>
-                    )}
-                  </h3>
-
-                  {/* --- THE NEW DISTANCE BADGE --- */}
-                  <div className="mt-2 flex items-center gap-1.5 min-h-[20px]">
-                    <span className="text-[10px] text-gray-400">
-                      📍 {artisan.artisanProfile?.address || "Lagos"}
-                    </span>
-                    {artisan.distance && (
-                      <span className="bg-blue-50 text-[#1E3A8A] px-2 py-0.5 rounded-md font-black text-[9px]">
-                        {artisan.distance.toFixed(1)} km away
-                      </span>
-                    )}
+                        <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                      </svg>
+                    </button>
                   </div>
 
-                  <div className="mt-4 flex gap-2">
-                    <Link
-                      to={`/artisan/${artisan._id}`}
-                      className="flex-1 bg-gray-900 text-white text-center py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-700 transition"
-                    >
-                      View
-                    </Link>
-                    <a
-                      href={`https://wa.me/${artisan.artisanProfile?.whatsapp}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="px-3 py-2.5 border border-green-500 text-green-500 rounded-xl text-xs hover:bg-green-50 transition"
-                    >
-                      💬
-                    </a>
+                  {/* Content */}
+                  <div className="p-4 flex flex-col flex-grow">
+                    <div className="flex items-center gap-1 mb-1">
+                      <p
+                        className={`text-[9px] font-black uppercase tracking-widest ${isPro ? "text-blue-600" : "text-gray-400"}`}
+                      >
+                        {artisan.artisanProfile?.category}
+                      </p>
+                      {isPro && (
+                        <span className="text-blue-500 text-[10px]">⚡</span>
+                      )}
+                    </div>
+
+                    <h3 className="text-sm font-bold text-gray-900 truncate flex items-center gap-1 uppercase tracking-tight">
+                      {artisan.artisanProfile?.businessName ||
+                        artisan.firstName}
+                      {isVerified && (
+                        <span
+                          className="text-green-500"
+                          title="Verified Professional"
+                        >
+                          <svg
+                            className="w-4 h-4"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                        </span>
+                      )}
+                    </h3>
+
+                    {/* Distance Badge */}
+                    <div className="mt-2 flex items-center gap-1.5 min-h-[20px]">
+                      <span className="text-[10px] text-gray-400 font-medium truncate">
+                        📍{" "}
+                        {artisan.artisanProfile?.address?.split(",")[0] ||
+                          "Lagos"}
+                      </span>
+                      {artisan.distance && (
+                        <span
+                          className={`px-2 py-0.5 rounded-md font-black text-[9px] ${isPro ? "bg-blue-600 text-white" : "bg-blue-50 text-[#1E3A8A]"}`}
+                        >
+                          {artisan.distance.toFixed(1)} km
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="mt-4 flex gap-2">
+                      <Link
+                        to={`/artisan/${artisan._id}`}
+                        className={`flex-1 text-center py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition shadow-sm ${
+                          isPro
+                            ? "bg-blue-600 text-white hover:bg-blue-700"
+                            : "bg-gray-900 text-white hover:bg-black"
+                        }`}
+                      >
+                        Profile
+                      </Link>
+                      <a
+                        href={`https://wa.me/${artisan.artisanProfile?.whatsapp}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="px-3 py-2.5 border border-green-500 text-green-500 rounded-xl text-xs hover:bg:green-50 transition"
+                      >
+                        💬
+                      </a>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           {/* Load More */}
-          {visibleCount < filteredArtisans.length && (
+          {visibleCount < filteredAndSortedArtisans.length && (
             <div className="mt-12 flex justify-center">
               <button
                 onClick={() => setVisibleCount((prev) => prev + ITEMS_PER_PAGE)}

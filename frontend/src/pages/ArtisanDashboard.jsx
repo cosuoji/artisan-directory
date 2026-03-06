@@ -237,6 +237,15 @@ const ArtisanDashboard = () => {
             </span>
           )}
         </div>
+        {user?.artisanProfile?.subscriptionTier === "pro" && (
+          <div className="mt-2 inline-flex items-center gap-2 bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border border-blue-100">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+            </span>
+            Pro Member Active
+          </div>
+        )}
 
         {/* CTA Buttons */}
         <div className="flex items-center gap-4">
