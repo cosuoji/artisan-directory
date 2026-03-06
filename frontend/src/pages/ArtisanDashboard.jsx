@@ -4,6 +4,7 @@ import toast from "react-hot-toast";
 import ArtisanLocationPicker from "../components/ArtisanLocationPicker";
 import useSEO from "../hooks/useSEO";
 import UpgradeModal from "../components/UpgradeModal";
+import confetti from "canvas-confetti";
 
 const ArtisanDashboard = () => {
   const [activeTab, setActiveTab] = useState("profile");
@@ -63,13 +64,28 @@ const ArtisanDashboard = () => {
   const getProfile = async () => {
     setLoading(true);
     try {
-      const res = await API.get("/auth/me");
+      // Force a fresh fetch by adding a unique timestamp to the URL
+      const timestamp = new Date().getTime();
+      const res = await API.get(`/auth/me?t=${timestamp}`);
+
       const userData = res.data;
       setUser(userData);
+
+      if (
+        userData.artisanProfile?.subscriptionTier === "pro" &&
+        user?.artisanProfile?.subscriptionTier !== "pro"
+      ) {
+        confetti({
+          particleCount: 150,
+          spread: 70,
+          origin: { y: 0.6 },
+          colors: ["#2563eb", "#93c5fd", "#ffffff"], // Pro Blue theme
+        });
+      }
+
       getReviews(userData._id);
 
       if (userData.artisanProfile) {
-        // 2. STATE SYNC: Load the existing location from the database
         setProfileData({
           businessName: userData.artisanProfile.businessName || "",
           category: userData.artisanProfile.category || "",
@@ -182,16 +198,17 @@ const ArtisanDashboard = () => {
     }
   };
 
-  const handlePaymentSuccess = async (reference, verifiedNin) => {
+  const handlePaymentSuccess = async (reference) => {
     setLoading(true);
     try {
-      const res = await API.post("/payments", {
+      // 1. Verify payment with backend
+      await API.post("/payments", {
         reference: reference.reference,
         type: modalConfig.type,
-        nin: verifiedNin,
+        // No NIN sent here anymore since we only verify, not store
       });
 
-      // Custom messages based on type
+      // 2. Success Messages
       if (modalConfig.type === "pro") {
         toast.success("🚀 You're now a PRO! 30 slots unlocked.", {
           duration: 5000,
@@ -200,10 +217,16 @@ const ArtisanDashboard = () => {
         toast.success("✅ Identity Verified! Badge added to profile.");
       }
 
+      // 3. UI Cleanup & REFRESH
       setModalConfig({ ...modalConfig, isOpen: false });
-      await getProfile(); // This triggers the UI refresh
+
+      // IMPORTANT: Ensure getProfile uses the cache-buster we added
+      await getProfile();
     } catch (err) {
-      toast.error(err.response?.data?.msg || "Update failed");
+      console.error("Payment Verification Error:", err);
+      toast.error(
+        err.response?.data?.msg || "Update failed. Please contact support.",
+      );
     } finally {
       setLoading(false);
     }
