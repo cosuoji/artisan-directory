@@ -7,6 +7,7 @@ import Footer from "./components/Footer";
 import ScrollToTop from "./components/ScrollToTop";
 import VerifyEmail from "./components/VerifyEmail";
 import ProtectedRoute from "./components/ProtectedRoute";
+import CookieConsent from "./components/CookieConsent";
 
 // Import Pages
 import Home from "./pages/Home";
@@ -97,6 +98,7 @@ function App() {
         </main>
 
         <Footer />
+        <CookieConsent />
       </div>
       <Toaster />
     </BrowserRouter>

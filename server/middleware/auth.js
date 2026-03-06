@@ -18,7 +18,10 @@ export const protect = async (req, res, next) => {
 
     // ALLOW access to the verify-email route even if unverified
     // but BLOCK other routes
-    if (!req.user.isEmailVerified && req.path !== "/verify-email") {
+    if (
+      !req.user.isEmailVerified &&
+      !req.originalUrl.includes("verify-email")
+    ) {
       return res.status(403).json({
         msg: "Please verify your email to continue.",
         unverified: true,

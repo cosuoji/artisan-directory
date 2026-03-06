@@ -17,6 +17,7 @@ const Directory = () => {
   const [skillSearch, setSkillSearch] = useState(""); // This acts as our category search
   const [filterLocation, setFilterLocation] = useState("");
   const [filterRating, setFilterRating] = useState(0);
+  const [filterVerifiedOnly, setFilterVerifiedOnly] = useState(false);
 
   // --- LOAD MORE STATE ---
   const ITEMS_PER_PAGE = 12;
@@ -140,15 +141,15 @@ const Directory = () => {
       searchTerm === "" ||
       profile.businessName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       artisan.firstName?.toLowerCase().includes(searchTerm.toLowerCase());
-
     // Note: Backend handles Category filtering now, but we keep this as backup
     const matchesSkill =
       skillSearch === "" ||
       profile.category?.toLowerCase().includes(skillSearch.toLowerCase());
 
     const matchesRating = (profile.rating || 0) >= filterRating;
+    const matchesVerified = !filterVerifiedOnly || profile.isVerified === true;
 
-    return matchesSearch && matchesSkill && matchesRating;
+    return matchesSearch && matchesSkill && matchesRating && matchesVerified;
   });
 
   const displayedArtisans = filteredArtisans.slice(0, visibleCount);
@@ -176,6 +177,21 @@ const Directory = () => {
         >
           {userLocation ? "📍 Live GPS Enabled" : "🎯 Sort By Proximity"}
         </button>
+        <div className="flex items-center gap-2 bg-white px-4 py-3 rounded-2xl border border-gray-100 shadow-sm">
+          <input
+            type="checkbox"
+            id="verifiedFilter"
+            className="w-5 h-5 accent-green-600 cursor-pointer"
+            checked={filterVerifiedOnly}
+            onChange={(e) => setFilterVerifiedOnly(e.target.checked)}
+          />
+          <label
+            htmlFor="verifiedFilter"
+            className="text-xs font-black uppercase tracking-widest text-gray-700 cursor-pointer select-none"
+          >
+            Verified Only ✅
+          </label>
+        </div>
       </div>
 
       {/* --- SEARCHBARS --- */}
@@ -246,8 +262,28 @@ const Directory = () => {
                   <p className="text-[10px] font-black uppercase text-blue-600 mb-1">
                     {artisan.artisanProfile?.category}
                   </p>
-                  <h3 className="text-sm font-bold text-gray-900 truncate">
+                  <h3 className="text-sm font-bold text-gray-900 truncate flex items-center gap-1">
+                    {" "}
                     {artisan.artisanProfile?.businessName || artisan.firstName}
+                    {/* THE GREEN TICK */}
+                    {artisan.artisanProfile?.isVerified && (
+                      <span
+                        className="text-green-500"
+                        title="Verified Professional"
+                      >
+                        <svg
+                          className="w-4 h-4"
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                      </span>
+                    )}
                   </h3>
 
                   {/* --- THE NEW DISTANCE BADGE --- */}

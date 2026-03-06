@@ -6,23 +6,23 @@ import { useAuth } from "../context/AuthContext";
 import useSEO from "../hooks/useSEO";
 
 const VerifyEmail = () => {
+  const email = localStorage.getItem("email_to_verify");
   const [otp, setOtp] = useState("");
   const [countdown, setCountdown] = useState(0); // 0 means button is active
   const [loading, setLoading] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
   const navigate = useNavigate();
   const { login } = useAuth(); // <-- Grab the login function
 
   useSEO({ title: "Verify Email" });
 
-  // We can grab the email from localStorage if we saved it during signup
-  const email = localStorage.getItem("email_to_verify");
-
   useEffect(() => {
-    if (!email) {
+    // Only show error if there's no email AND we haven't just successfully verified
+    if (!email && !isSuccess) {
       toast.error("No email found to verify. Please sign up again.");
       navigate("/signup");
     }
-  }, [email, navigate]);
+  }, [email, navigate, isSuccess]);
 
   const handleVerify = async (e) => {
     e.preventDefault();
@@ -30,13 +30,13 @@ const VerifyEmail = () => {
     try {
       const res = await API.post("/auth/verify-email", { email, otp });
 
-      // NEW: Use the context function! This instantly updates the whole app.
+      // Set success to true BEFORE removing item and navigating
+      setIsSuccess(true);
       login(res.data.token, res.data.user);
 
       toast.success("Email verified! Welcome to Abeg Fix.");
       localStorage.removeItem("email_to_verify");
 
-      // Redirect
       navigate(
         res.data.user.role === "artisan" ? "/artisan-dashboard" : "/directory",
       );
@@ -46,6 +46,7 @@ const VerifyEmail = () => {
       setLoading(false);
     }
   };
+
   // Handle the countdown timer
   useEffect(() => {
     let timer;

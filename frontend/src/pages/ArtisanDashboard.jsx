@@ -3,12 +3,17 @@ import API from "../api/axios";
 import toast from "react-hot-toast";
 import ArtisanLocationPicker from "../components/ArtisanLocationPicker";
 import useSEO from "../hooks/useSEO";
+import UpgradeModal from "../components/UpgradeModal";
 
 const ArtisanDashboard = () => {
   const [activeTab, setActiveTab] = useState("profile");
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
   const [reviews, setReviews] = useState([]);
+  const [modalConfig, setModalConfig] = useState({
+    isOpen: false,
+    type: "pro",
+  });
 
   // 1. STATE UPDATE: We added address and location here
   const [profileData, setProfileData] = useState({
@@ -22,7 +27,10 @@ const ArtisanDashboard = () => {
     location: { type: "Point", coordinates: [3.3792, 6.5244] }, // Default to Lagos [lng, lat]
   });
 
-  console.log(user);
+  // Add this after your useState declarations
+  const tier = user?.artisanProfile?.subscriptionTier || "free";
+  const maxPortfolioLimit = tier === "pro" ? 30 : 3;
+  const currentPortfolioCount = profileData.portfolio?.length || 0;
 
   useSEO({
     title: user
@@ -102,13 +110,25 @@ const ArtisanDashboard = () => {
       return;
     }
 
+    // Calculate remaining slots based on Tier
+    const remainingSlots = maxPortfolioLimit - currentPortfolioCount;
+
+    if (!isProfilePic && remainingSlots <= 0) {
+      toast.error(
+        `You've reached your ${tier} limit. Upgrade to Pro for more slots!`,
+      );
+      return;
+    }
+
     const widget = window.cloudinary.createUploadWidget(
       {
-        cloudName: `dvnolhdyk`, // REPLACE THIS
-        uploadPreset: `artisan_uploads`, // REPLACE THIS
-        sources: ["local", "camera", "url"],
+        cloudName: `dvnolhdyk`,
+        uploadPreset: `artisan_uploads`,
+        folder: `artisan_portfolios/${user._id}`,
+        sources: ["local", "camera"],
         multiple: !isProfilePic,
-        maxFiles: isProfilePic ? 1 : 30 - (profileData.portfolio?.length || 0),
+        // NEW: maxFiles is now dynamic based on tier and current count
+        maxFiles: isProfilePic ? 1 : remainingSlots,
         cropping: isProfilePic,
         resourceType: "image",
         clientAllowedFormats: ["png", "jpg", "jpeg", "webp"],
@@ -117,15 +137,19 @@ const ArtisanDashboard = () => {
         if (!error && result && result.event === "success") {
           const imageUrl = result.info.secure_url;
 
-          if (isProfilePic) {
-            setProfileData((prev) => ({ ...prev, profilePic: imageUrl }));
-            toast.success("Profile photo ready. Click save to finalize!");
-          } else {
-            setProfileData((prev) => ({
-              ...prev,
-              portfolio: [...(prev.portfolio || []), imageUrl],
-            }));
-            toast.success("Work image added. Click save to finalize!");
+          // 1. Update the local state so the UI reflects the change immediately
+          const updatedPortfolio = [...(profileData.portfolio || []), imageUrl];
+          setProfileData((prev) => ({ ...prev, portfolio: updatedPortfolio }));
+
+          // 2. AUTO-SAVE: Push directly to the backend
+          if (!isProfilePic) {
+            API.put("/auth/update-profile", {
+              artisanProfile: { portfolio: updatedPortfolio },
+            })
+              .then(() => toast.success("Work added and saved!"))
+              .catch(() =>
+                toast.error("Image uploaded, but failed to save to profile."),
+              );
           }
         }
       },
@@ -158,6 +182,24 @@ const ArtisanDashboard = () => {
     }
   };
 
+  const handlePaymentSuccess = async (reference) => {
+    try {
+      // 1. Verify on backend (crucial for security)
+      const res = await API.post("/payments/verify", {
+        reference: reference.reference,
+        type: modalConfig.type,
+      });
+
+      toast.success(res.data.msg);
+      setModalConfig({ ...modalConfig, isOpen: false });
+      getProfile(); // Refresh dashboard to show new tier/verified status
+    } catch (err) {
+      toast.error(
+        "Payment verified, but account update failed. Contact support.",
+      );
+    }
+  };
+
   if (loading && !user)
     return (
       <div className="p-20 text-center text-gray-500">Loading Dashboard...</div>
@@ -165,16 +207,47 @@ const ArtisanDashboard = () => {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-10">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-black text-gray-900">Artisan Dashboard</h1>
-        <a
-          href={`/artisan/${user?._id}`}
-          target="_blank"
-          rel="noreferrer"
-          className="text-xs font-bold text-blue-600 hover:underline"
-        >
-          View Public Profile ↗
-        </a>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+        {/* Title & Verified Tick */}
+        <div className="flex items-center gap-3">
+          <h1 className="text-3xl font-black text-gray-900">
+            Artisan Dashboard
+          </h1>
+          {user?.artisanProfile?.isVerified && (
+            <span
+              className="bg-green-100 text-green-600 p-1.5 rounded-full flex items-center justify-center shadow-sm"
+              title="Verified Artisan"
+            >
+              <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                <path
+                  fillRule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </span>
+          )}
+        </div>
+
+        {/* CTA Buttons */}
+        <div className="flex items-center gap-4">
+          {!user?.artisanProfile?.isVerified && (
+            <button
+              onClick={() => setModalConfig({ isOpen: true, type: "verified" })}
+              className="bg-green-500 text-white px-5 py-2.5 rounded-xl text-sm font-black uppercase tracking-widest shadow-md hover:bg-green-600 transition"
+            >
+              Get Verified
+            </button>
+          )}
+          <a
+            href={`/artisan/${user?._id}`}
+            target="_blank"
+            rel="noreferrer"
+            className="text-xs font-bold text-[#1E3A8A] bg-blue-50 px-4 py-2.5 rounded-xl hover:bg-blue-100 transition"
+          >
+            View Public Profile ↗
+          </a>
+        </div>
       </div>
 
       {/* TABS NAVIGATION */}
@@ -306,7 +379,7 @@ const ArtisanDashboard = () => {
         {/* --- PORTFOLIO TAB --- */}
         {activeTab === "portfolio" && (
           <div className="animate-fadeIn">
-            <div className="flex justify-between items-end mb-8">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-4">
               <div>
                 <h3 className="text-xl font-black text-gray-900">
                   Work Portfolio
@@ -315,9 +388,31 @@ const ArtisanDashboard = () => {
                   Showcase your best projects to customers.
                 </p>
               </div>
-              <span className="text-xs font-black text-gray-400 uppercase bg-gray-50 px-3 py-1 rounded-full border border-gray-100">
-                {profileData?.portfolio?.length || 0} / 30 Images
-              </span>
+
+              {/* Dynamic Counter */}
+              <div className="flex flex-col items-end gap-2">
+                <span
+                  className={`text-xs font-black px-3 py-1 rounded-full border ${
+                    currentPortfolioCount >= maxPortfolioLimit
+                      ? "bg-red-50 text-red-600 border-red-100"
+                      : "bg-gray-50 text-gray-400 border-gray-100"
+                  }`}
+                >
+                  {currentPortfolioCount} / {maxPortfolioLimit} Images
+                </span>
+
+                {/* Upgrade Prompt for Free Users */}
+                {tier === "free" && currentPortfolioCount >= 3 && (
+                  <button
+                    onClick={() =>
+                      setModalConfig({ isOpen: true, type: "pro" })
+                    }
+                    className="text-[10px] font-black text-blue-600 uppercase tracking-widest hover:underline"
+                  >
+                    🚀 Go Pro for 30 slots
+                  </button>
+                )}
+              </div>
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -349,7 +444,8 @@ const ArtisanDashboard = () => {
                 </div>
               ))}
 
-              {(profileData?.portfolio?.length || 0) < 30 && (
+              {/* --- CONDITIONAL ADD BUTTON --- */}
+              {currentPortfolioCount < maxPortfolioLimit ? (
                 <button
                   onClick={() => openCloudinaryWidget(false)}
                   className="aspect-square border-2 border-dashed border-gray-200 rounded-2xl flex flex-col items-center justify-center gap-2 hover:bg-blue-50 hover:border-blue-300 transition group"
@@ -361,6 +457,14 @@ const ArtisanDashboard = () => {
                     Add Project
                   </span>
                 </button>
+              ) : (
+                /* The "Locked" Button */
+                <div className="aspect-square border-2 border-dashed border-gray-100 bg-gray-50 rounded-2xl flex flex-col items-center justify-center gap-2 grayscale opacity-60">
+                  <span className="text-xl">🔒</span>
+                  <span className="text-gray-400 font-bold text-[10px] uppercase text-center px-4">
+                    Limit Reached
+                  </span>
+                </div>
               )}
             </div>
 
@@ -496,6 +600,15 @@ const ArtisanDashboard = () => {
           </div>
         )}
       </div>
+      {/* Add the Modal component at the very bottom of the return statement */}
+      <UpgradeModal
+        isOpen={modalConfig.isOpen}
+        type={modalConfig.type}
+        userEmail={user?.email}
+        userId={user?._id}
+        onClose={() => setModalConfig({ ...modalConfig, isOpen: false })}
+        onSuccess={handlePaymentSuccess}
+      />
     </div>
   );
 };

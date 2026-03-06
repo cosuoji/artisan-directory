@@ -4,11 +4,12 @@ export default function Cookies() {
   useSEO({ title: "Cookie Policy" });
   return (
     <div className="max-w-4xl mx-auto bg-white shadow p-6 rounded-xl mt-10 mb-10 text-gray-800">
-      <h1 className="text-3xl font-semibold mb-6">Cookie Policy</h1>
+      <h1 className="text-3xl font-semibold mb-6">Cookie & Storage Policy</h1>
 
       <p className="mb-4">
-        This Cookie Policy explains how <strong>Abeg Fix</strong> uses cookies
-        and similar technologies when you visit our website.
+        This Cookie & Storage Policy explains how <strong>Abeg Fix</strong> uses
+        cookies, local storage, and similar technologies to provide our
+        services.
       </p>
 
       <h2 className="text-xl font-semibold mt-6 mb-3">What are cookies?</h2>
@@ -43,11 +44,22 @@ export default function Cookies() {
       <h2 className="text-xl font-semibold mt-6 mb-3">How we use cookies</h2>
       <p className="mb-4">We use cookies to:</p>
       <ul className="list-disc pl-6 mb-4">
-        <li>Keep you logged in during a session</li>
+        <li>
+          <strong>Authentication:</strong> We use authentication tokens (stored
+          in your browser) to verify your identity and keep you securely logged
+          in as you navigate between pages.
+        </li>
         <li>Remember your preferences</li>
         <li>Analyse site performance and traffic</li>
         <li>Deliver relevant marketing and advertising (where applicable)</li>
       </ul>
+      <h2 className="text-xl font-semibold mt-6 mb-3">Data Retention</h2>
+      <p className="mb-4">
+        Essential authentication data (such as your session token) is kept only
+        for the duration of your active login session or until you choose to log
+        out. Preference cookies are typically retained until you clear them from
+        your browser.
+      </p>
 
       <h2 className="text-xl font-semibold mt-6 mb-3">Managing cookies</h2>
       <p className="mb-4">

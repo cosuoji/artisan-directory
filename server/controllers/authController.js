@@ -25,16 +25,50 @@ export const updateProfile = async (req, res) => {
   try {
     const { artisanProfile } = req.body;
 
-    // Find user and update the artisanProfile object
+    // 1. Define fields that are SAFE for the user to change
+    const allowedFields = [
+      "businessName",
+      "category",
+      "whatsapp",
+      "bio",
+      "profilePic",
+      "address",
+      "location",
+      "portfolio",
+    ];
+
+    // 2. Build the update object using dot notation
+    const updates = {};
+
+    for (const key in artisanProfile) {
+      if (allowedFields.includes(key)) {
+        updates[`artisanProfile.${key}`] = artisanProfile[key];
+      }
+    }
+
+    // 3. Perform the update
     const user = await User.findByIdAndUpdate(
       req.user.id,
-      { $set: { artisanProfile } },
-      { new: true, runValidators: true },
+      { $set: updates },
+      {
+        new: true,
+        runValidators: true,
+        // This ensures the portfolioLimit function in your schema still runs
+        context: "query",
+      },
     ).select("-password");
+
+    if (!user) {
+      return res.status(404).json({ msg: "User not found" });
+    }
 
     res.json(user);
   } catch (err) {
-    console.error(err.message);
+    console.error("Update Error:", err.message);
+    // Send the specific Mongoose validation error message (like the Portfolio Limit)
+    if (err.name === "ValidationError") {
+      return res.status(400).json({ msg: err.message });
+    }
     res.status(500).send("Server Error");
   }
 };

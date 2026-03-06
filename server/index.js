@@ -4,7 +4,9 @@ import cors from "cors";
 import mongoose from "mongoose";
 import authRoutes from "./routes/auth.js";
 import userRoutes from "./routes/user.js"; // Don't forget the .js!
+import paymentRoutes from "./routes/payments.js";
 import reviewRoutes from "./routes/reviewRoutes.js";
+import webhookRoutes from "./routes/webhookRoutes.js";
 import cron from "node-cron";
 import User from "./models/User.js";
 import rateLimit from "express-rate-limit";
@@ -59,12 +61,14 @@ app.use("/api", globalLimiter);
 
 // 2. Apply Strict Auth Limiter specifically to Auth routes
 // This stacks on top of the global one
-app.use("/api/auth", authLimiter, authRoutes);
-//app.use("/api/auth", authRoutes);
+//app.use("/api/auth", authLimiter, authRoutes);
+app.use("/api/auth", authRoutes);
 
 // 3. Regular routes (only governed by globalLimiter)
 app.use("/api/users", userRoutes);
 app.use("/api/reviews", reviewRoutes);
+app.use("/api/verify", paymentRoutes);
+app.use("/api/webhooks/", webhookRoutes);
 
 // Health check (usually left without a limiter so monitoring tools don't get blocked)
 app.get("/health", (req, res) => {

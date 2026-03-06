@@ -7,14 +7,11 @@ import useSEO from "../hooks/useSEO";
 const ArtisanSignup = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-  const [verifying, setVerifying] = useState(false); // Separate loading state for NIN
-  const [verified, setVerified] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
     password: "",
     firstName: "",
     lastName: "",
-    nin: "",
     businessName: "",
     category: "",
     whatsapp: "",
@@ -22,25 +19,8 @@ const ArtisanSignup = () => {
 
   useSEO({ title: "Artisan Signup" });
 
-  const handleVerifyNIN = async () => {
-    if (formData.nin.length < 11)
-      return toast.error("Please enter a valid 11-digit NIN");
-
-    setVerifying(true);
-    // Simulating API call to NIMC/Verification service
-    setTimeout(() => {
-      setVerifying(false);
-      setVerified(true);
-      toast.success("NIN Verified!");
-    }, 2000);
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    if (!verified) {
-      return toast.error("Please verify your NIN before proceeding");
-    }
 
     setLoading(true);
     try {
@@ -115,33 +95,6 @@ const ArtisanSignup = () => {
                 setFormData({ ...formData, lastName: e.target.value })
               }
             />
-          </div>
-
-          {/* NIN Section */}
-          <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
-            <label className="block text-sm font-semibold text-[#1E3A8A] mb-2">
-              NIN Verification (Required)
-            </label>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                placeholder="11-digit NIN"
-                className="flex-1 p-2 border border-gray-300 rounded-lg text-sm outline-none"
-                onChange={(e) =>
-                  setFormData({ ...formData, nin: e.target.value })
-                }
-              />
-              <button
-                type="button"
-                onClick={handleVerifyNIN}
-                disabled={verifying || verified}
-                className={`px-4 py-2 rounded-lg text-sm font-bold text-white transition ${
-                  verified ? "bg-green-500" : "bg-[#1E3A8A] hover:bg-blue-900"
-                } disabled:opacity-70`}
-              >
-                {verifying ? "..." : verified ? "✓" : "Verify"}
-              </button>
-            </div>
           </div>
 
           <input

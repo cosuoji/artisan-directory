@@ -14,6 +14,7 @@ router.get("/artisans", async (req, res) => {
     const { lat, lng, category } = req.query;
     let pipeline = [];
 
+    // 1. GEOSPATIAL STAGE
     if (lat && lng) {
       pipeline.push({
         $geoNear: {
@@ -23,28 +24,39 @@ router.get("/artisans", async (req, res) => {
           },
           distanceField: "distance",
           spherical: true,
-          // ADD THIS LINE BELOW
           key: "artisanProfile.location",
           query: { role: "artisan" },
-          distanceMultiplier: 0.001,
+          distanceMultiplier: 0.001, // Convert meters to km
         },
       });
     } else {
       pipeline.push({ $match: { role: "artisan" } });
     }
 
-    // 2. CATEGORY FILTER STAGE
+    // 2. CATEGORY FILTER
     if (category && category !== "All") {
       pipeline.push({
         $match: { "artisanProfile.category": category },
       });
     }
 
-    // 3. CLEANUP STAGE (Only return what the frontend needs)
+    // 3. PRIORITY SORTING STAGE (The "Money" Maker)
+    pipeline.push({
+      $sort: {
+        "artisanProfile.isSponsored": -1, // 1st: Sponsored (True first)
+        "artisanProfile.subscriptionTier": -1, // 2nd: Pro (p > f alphabetically, so -1 works)
+        distance: 1, // 3rd: Nearest (if geoNear was used)
+        "artisanProfile.rating": -1, // 4th: Best rated
+      },
+    });
+
+    // 4. CLEANUP STAGE
     pipeline.push({
       $project: {
         password: 0,
-        "artisanProfile.nin": 0, // Keep sensitive data private
+        "artisanProfile.nin": 0,
+        emailVerificationOTP: 0,
+        otpExpires: 0,
       },
     });
 

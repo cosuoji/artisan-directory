@@ -2,10 +2,12 @@ import mongoose from "mongoose";
 
 const { Schema, model } = mongoose;
 
-function arrayLimit(val) {
-  return val.length <= 30;
-}
-
+const portfolioLimit = function (val) {
+  // 'this' refers to the user document being saved
+  const tier = this.artisanProfile?.subscriptionTier || "free";
+  const limit = tier === "pro" ? 30 : 3;
+  return val.length <= limit;
+};
 const UserSchema = new Schema(
   {
     // Global fields (for everyone)
@@ -67,14 +69,20 @@ const UserSchema = new Schema(
         },
       },
       portfolio: {
-        type: [String], // Array of URLs
+        type: [String],
         validate: [
-          arrayLimit,
-          "You can only upload a maximum of 30 portfolio images",
+          portfolioLimit,
+          "Upgrade to Pro to upload more than 3 portfolio images!",
         ],
       },
       isVerified: { type: Boolean, default: false },
-      rating: { type: Number, default: 5.0 },
+      rating: { type: Number, default: 5.0 }, //For NIN
+      subscriptionTier: {
+        type: String,
+        enum: ["free", "pro"],
+        default: "free",
+      },
+      isSponsored: { type: Boolean, default: false },
     },
 
     // Favorites: Array of Artisan IDs

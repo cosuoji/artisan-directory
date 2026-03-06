@@ -15,6 +15,7 @@ const ArtisanProfileView = () => {
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(-1);
 
   useSEO({
     title: artisan
@@ -124,9 +125,29 @@ const ArtisanProfileView = () => {
               <span className="text-blue-600 font-black text-[10px] uppercase tracking-[0.2em] bg-blue-50 px-3 py-1 rounded-full border border-blue-100">
                 {profile.category || "Professional"}
               </span>
-              <h1 className="text-4xl font-black text-gray-900 mt-2 tracking-tight">
+              <h1 className="text-4xl font-black text-gray-900 mt-2 tracking-tight flex items-center gap-2">
                 {profile.businessName ||
                   `${artisan.firstName} ${artisan.lastName}`}
+
+                {/* THE GREEN TICK */}
+                {profile.isVerified && (
+                  <span
+                    className="bg-green-100 text-green-600 p-1 rounded-full flex items-center justify-center"
+                    title="NIN Verified"
+                  >
+                    <svg
+                      className="w-6 h-6"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                  </span>
+                )}
               </h1>
               <p className="text-gray-500 flex items-center gap-1 mt-1 font-medium">
                 📍 {profile.address || "Lagos, Nigeria"}
@@ -165,11 +186,12 @@ const ArtisanProfileView = () => {
                     {profile.portfolio.map((img, idx) => (
                       <div
                         key={idx}
-                        className="aspect-square rounded-2xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-md transition"
+                        onClick={() => setLightboxIndex(idx)} // ADD CLICK HANDLER
+                        className="aspect-square rounded-2xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-md transition cursor-pointer" // ADDED cursor-pointer
                       >
                         <img
                           src={img}
-                          alt="Work sample"
+                          alt={`Work sample ${idx + 1}`}
                           className="w-full h-full object-cover hover:scale-105 transition duration-500"
                         />
                       </div>
@@ -201,11 +223,21 @@ const ArtisanProfileView = () => {
                   Calculated from {reviews.length} verified customer reviews.
                 </p>
               </div>
-
               <div className="border-2 border-dashed border-gray-200 p-6 rounded-3xl">
-                <h4 className="font-bold text-gray-900 mb-3">Trust Badges</h4>
-                <div className="flex items-center gap-2 text-green-600 font-bold text-sm">
-                  ✅ Verified Identity
+                <h4 className="font-bold text-gray-900 mb-3">Trust Score</h4>
+                <div className="space-y-3">
+                  <div
+                    className={`flex items-center gap-2 font-bold text-sm ${profile.isVerified ? "text-green-600" : "text-gray-400 opacity-50"}`}
+                  >
+                    {profile.isVerified
+                      ? "✅ NIN Identity Verified"
+                      : "⚪ ID Not Verified"}
+                  </div>
+                  {profile.subscriptionTier === "pro" && (
+                    <div className="flex items-center gap-2 text-blue-600 font-bold text-sm">
+                      ⭐ Pro Professional
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -267,7 +299,6 @@ const ArtisanProfileView = () => {
             )}
 
             {/* REVIEWS LIST */}
-            {/* REVIEWS LIST */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {reviews.map((rev) => (
                 <div
@@ -318,6 +349,57 @@ const ArtisanProfileView = () => {
           </div>
         </div>
       </div>
+      {/* --- LIGHTBOX OVERLAY --- */}
+      {lightboxIndex >= 0 && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 p-4"
+          onClick={() => setLightboxIndex(-1)} // Click outside to close
+        >
+          {/* Close Button */}
+          <button
+            onClick={() => setLightboxIndex(-1)}
+            className="absolute top-6 right-8 text-white text-5xl hover:text-gray-400 transition"
+          >
+            &times;
+          </button>
+
+          <div className="relative w-full max-w-5xl flex items-center justify-between">
+            {/* Prev Button */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setLightboxIndex((prev) =>
+                  prev > 0 ? prev - 1 : profile.portfolio.length - 1,
+                );
+              }}
+              className="text-white text-6xl p-4 hover:text-gray-400 transition drop-shadow-lg"
+            >
+              &#8249;
+            </button>
+
+            {/* Main Image */}
+            <img
+              src={profile.portfolio[lightboxIndex]}
+              alt="Enlarged Portfolio"
+              onClick={(e) => e.stopPropagation()} // Prevent closing when clicking image
+              className="max-h-[85vh] max-w-full object-contain mx-auto rounded-lg shadow-2xl"
+            />
+
+            {/* Next Button */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setLightboxIndex((prev) =>
+                  prev < profile.portfolio.length - 1 ? prev + 1 : 0,
+                );
+              }}
+              className="text-white text-6xl p-4 hover:text-gray-400 transition drop-shadow-lg"
+            >
+              &#8250;
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
