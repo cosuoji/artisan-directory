@@ -122,8 +122,8 @@ const ArtisanDashboard = () => {
 
     const widget = window.cloudinary.createUploadWidget(
       {
-        cloudName: `dvnolhdyk`,
-        uploadPreset: `artisan_uploads`,
+        cloudName: import.meta.env.VITE_CLOUD_NAME,
+        uploadPreset: import.meta.env.VITE_PRESET_NAME,
         folder: `artisan_portfolios/${user._id}`,
         sources: ["local", "camera"],
         multiple: !isProfilePic,

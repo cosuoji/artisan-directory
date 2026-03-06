@@ -76,7 +76,7 @@ const UserSchema = new Schema(
         ],
       },
       isVerified: { type: Boolean, default: false },
-      rating: { type: Number, default: 5.0 }, //For NIN
+      rating: { type: Number, default: 0 },
       subscriptionTier: {
         type: String,
         enum: ["free", "pro"],

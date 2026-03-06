@@ -16,7 +16,7 @@ const UpgradeModal = ({
     reference: new Date().getTime().toString(),
     email: userEmail,
     amount: type === "pro" ? 100000 : 100000,
-    publicKey: "pk_test_76c26469b5e006e65b7204e66b95e4e283995656",
+    publicKey: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY,
     // ADD THIS BLOCK:
     metadata: {
       userId: userId, // Pass the actual user ID here
