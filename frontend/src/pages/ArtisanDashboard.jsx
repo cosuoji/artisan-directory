@@ -202,29 +202,42 @@ const ArtisanDashboard = () => {
   const handlePaymentSuccess = async (reference) => {
     setLoading(true);
     try {
-      // 1. Get the reference string safely
       const ref = reference?.reference || reference;
 
-      // 2. Fire and Forget (mostly)
-      // We await this to ensure the backend actually processed it
-      const response = await API.post("/payments", {
+      // 1. Tell the backend to verify
+      await API.post("/payments", {
         reference: ref,
         type: modalConfig.type,
       });
 
-      console.log("Backend confirmed payment:", response.data);
+      // 2. OPTIMISTIC UI UPDATE
+      // Instead of waiting for getProfile, we update the local state manually
+      setUser((prevUser) => {
+        const updatedUser = { ...prevUser };
+        if (modalConfig.type === "pro") {
+          updatedUser.artisanProfile.subscriptionTier = "pro";
+        } else if (modalConfig.type === "verified") {
+          updatedUser.artisanProfile.isVerified = true;
+        }
+        return updatedUser;
+      });
 
-      // 3. FORCE THE CLOSE AND REFRESH
-      setModalConfig({ ...modalConfig, isOpen: false });
+      toast.success(
+        modalConfig.type === "pro"
+          ? "🚀 Pro Features Unlocked!"
+          : "✅ Identity Verified!",
+      );
 
-      // Give the database a moment, then force refresh
-      setTimeout(() => {
-        window.location.reload(); // The "Ultimate" fix if getProfile() is failing
-      }, 1000);
+      // 3. Close the modal
+      setModalConfig((prev) => ({ ...prev, isOpen: false }));
+
+      // 4. Background Sync (Optional)
+      // We still run this to make sure everything is perfectly synced,
+      // but the UI is already updated from Step 2!
+      getProfile();
     } catch (err) {
-      console.error("Frontend Success Handler Error:", err);
-      // Even if it errors, if the backend worked, a reload will fix the UI
-      window.location.reload();
+      console.error("Verification Error:", err);
+      toast.error("Payment verified, but UI sync failed. Please refresh.");
     } finally {
       setLoading(false);
     }

@@ -47,8 +47,17 @@ router.post("/", protect, authorize("artisan"), async (req, res) => {
         update = { "artisanProfile.isVerified": true };
       }
 
-      await User.findByIdAndUpdate(req.user.id, { $set: update });
-      return res.json({ msg: `Successfully upgraded to ${type}!` });
+      const updatedUser = await User.findByIdAndUpdate(
+        req.user.id,
+        { $set: update },
+        { new: true },
+      );
+
+      // Return the updated user so the frontend can sync immediately
+      return res.json({
+        msg: `Successfully upgraded to ${type}!`,
+        user: updatedUser,
+      });
     }
 
     res.status(400).json({ msg: "Payment verification failed" });
@@ -57,9 +66,6 @@ router.post("/", protect, authorize("artisan"), async (req, res) => {
   }
 });
 
-// routes/payments.js
-
-// ROUTE: Pre-verify NIN names match before payment
 router.post(
   "/verify-nin-only",
   protect,
