@@ -74,7 +74,7 @@ const ArtisanDashboard = () => {
 
       if (
         userData.artisanProfile?.subscriptionTier === "pro" &&
-        user?.artisanProfile?.subscriptionTier !== "pro"
+        user?.artisanProfile?.subscriptionTier === "free"
       ) {
         confetti({
           particleCount: 150,

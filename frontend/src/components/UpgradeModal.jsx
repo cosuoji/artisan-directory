@@ -15,66 +15,47 @@ const UpgradeModal = ({
 }) => {
   if (!isOpen) return null;
 
+  console.log("Public Key Check:", import.meta.env.VITE_PAYSTACK_PUBLIC_KEY);
+
   const [step, setStep] = useState("info");
   const [nin, setNin] = useState("");
   const [verifying, setVerifying] = useState(false);
 
-  // Paystack Configuration
-  const config = useMemo(
-    () => ({
-      reference: `REF_${Math.floor(Math.random() * 1000000000)}`,
-      email: userEmail,
-      amount: 100000, // ₦1,000 in Kobo
-      publicKey: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY,
-      metadata: {
-        userId: userId,
-        upgradeType: type,
-      },
-    }),
-    [userEmail, type, userId],
-  ); // Only changes if these specific values change
+  // UNIQUE REFERENCE: Generate a new one every time the modal opens
+  const paymentReference = useMemo(
+    () => `REF_${Date.now()}_${Math.floor(Math.random() * 1000000)}`,
+    [isOpen],
+  );
+
+  const config = {
+    reference: paymentReference,
+    email: userEmail,
+    amount: 100000, // ₦1,000
+    publicKey: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY,
+    metadata: {
+      userId: userId,
+      upgradeType: type,
+    },
+    // MOVING CALLBACKS HERE: This is the "Stable" way
+    onSuccess: (reference) => {
+      console.log("CRITICAL: Payment success detected by Config!");
+      onSuccess(reference, nin);
+    },
+    onClose: () => {
+      console.log("CRITICAL: Modal closed by user.");
+      onClose();
+    },
+  };
 
   const initializePayment = usePaystackPayment(config);
-  const handlePayClick = () => {
-    // Always use the defined Actions to keep it consistent
-    initializePayment(onSuccessAction, onCloseAction);
-  };
 
-  // Step 2: Verify NIN with Backend BEFORE payment
-  const handleNinVerify = async () => {
-    setVerifying(true);
-    try {
-      // We hit a lightweight verification route first
-      await API.post("/payments/verify-nin-only", { nin });
-      toast.success("Identity Pre-verified! Proceed to payment.");
-      setStep("pay");
-    } catch (err) {
-      toast.error(
-        err.response?.data?.msg || "NIN verification failed. Name mismatch.",
-      );
-    } finally {
-      setVerifying(false);
-    }
-  };
-
-  const onSuccessAction = (reference) => {
-    // We pass the reference AND the current nin state to your parent's handlePaymentSuccess
-    console.log("PAYMENT SUCCESS SIGNAL RECEIVED!", reference);
-    onSuccess(reference, nin);
-  };
-
-  // 2. Define the close handler
-  const onCloseAction = () => {
-    onClose();
-  };
-
-  // 3. Update your handleNext and Pay button logic
   const handleNext = () => {
     if (type === "verified" && step === "info") {
       setStep("nin");
     } else {
-      // Correct way to call initializePayment
-      initializePayment(onSuccessAction, onCloseAction);
+      // No arguments needed here because they are in the config
+      console.log("Launching Paystack with Ref:", paymentReference);
+      initializePayment();
     }
   };
 
