@@ -36,16 +36,8 @@ const UpgradeModal = ({
 
   const initializePayment = usePaystackPayment(config);
   const handlePayClick = () => {
-    // We call initializePayment and pass the SUCCESS and CLOSE handlers directly
-    initializePayment(
-      (ref) => {
-        alert("Modal: Payment received, sending to Dashboard...");
-        onSuccess(ref, nin); // Call the parent function
-      },
-      () => {
-        onClose(); // Call the parent close
-      },
-    );
+    // Always use the defined Actions to keep it consistent
+    initializePayment(onSuccessAction, onCloseAction);
   };
 
   // Step 2: Verify NIN with Backend BEFORE payment
@@ -67,6 +59,7 @@ const UpgradeModal = ({
 
   const onSuccessAction = (reference) => {
     // We pass the reference AND the current nin state to your parent's handlePaymentSuccess
+    console.log("PAYMENT SUCCESS SIGNAL RECEIVED!", reference);
     onSuccess(reference, nin);
   };
 

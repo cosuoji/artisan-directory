@@ -237,6 +237,15 @@ const ArtisanDashboard = () => {
     [modalConfig.type],
   ); // Only recreate if type changes
 
+  const handleModalClose = async () => {
+    setModalConfig((prev) => ({ ...prev, isOpen: false }));
+
+    // FAIL-SAFE: If the user paid but the 'Success' alert never fired,
+    // this will catch the change when they manually close the modal.
+    toast("Refreshing account status...", { icon: "🔄" });
+    await getProfile();
+  };
+
   if (loading && !user)
     return (
       <div className="p-20 text-center text-gray-500">Loading Dashboard...</div>
@@ -654,7 +663,7 @@ const ArtisanDashboard = () => {
         userId={user?._id}
         userFirstName={user?.firstName} // Pass names for the NIN logic
         userLastName={user?.lastName}
-        onClose={() => setModalConfig({ ...modalConfig, isOpen: false })}
+        onClose={handleModalClose} // <--- Use the new handler here
         onSuccess={handlePaymentSuccess}
       />
     </div>
