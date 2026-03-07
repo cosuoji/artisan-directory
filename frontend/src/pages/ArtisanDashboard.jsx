@@ -199,50 +199,42 @@ const ArtisanDashboard = () => {
     }
   };
 
-  const handlePaymentSuccess = async (reference) => {
-    setLoading(true);
+  const handlePaymentSuccess = async (paystackResponse) => {
+    // TRACE 1: Did we even enter the function?
+    alert("Step 1: Function Started");
+
     try {
-      const ref = reference?.reference || reference;
+      const ref = paystackResponse?.reference || paystackResponse;
+      const pType = modalConfig?.type; // Safe access
 
-      // 1. Tell the backend to verify
-      await API.post("/payments", {
+      // TRACE 2: Do we have the data?
+      alert(`Step 2: Data Check - Ref: ${ref}, Type: ${pType}`);
+
+      if (!ref) throw new Error("Missing Reference");
+
+      setLoading(true);
+
+      // TRACE 3: Attempting API call
+      console.log("Calling API...");
+      const res = await API.post("/payments", {
         reference: ref,
-        type: modalConfig.type,
+        type: pType,
       });
 
-      // 2. OPTIMISTIC UI UPDATE
-      // Instead of waiting for getProfile, we update the local state manually
-      setUser((prevUser) => {
-        const updatedUser = { ...prevUser };
-        if (modalConfig.type === "pro") {
-          updatedUser.artisanProfile.subscriptionTier = "pro";
-        } else if (modalConfig.type === "verified") {
-          updatedUser.artisanProfile.isVerified = true;
-        }
-        return updatedUser;
-      });
+      // TRACE 4: API responded
+      alert("Step 3: API Success! Now reloading...");
 
-      toast.success(
-        modalConfig.type === "pro"
-          ? "🚀 Pro Features Unlocked!"
-          : "✅ Identity Verified!",
-      );
-
-      // 3. Close the modal
-      setModalConfig((prev) => ({ ...prev, isOpen: false }));
-
-      // 4. Background Sync (Optional)
-      // We still run this to make sure everything is perfectly synced,
-      // but the UI is already updated from Step 2!
-      getProfile();
+      // THE ULTIMATE RELOAD
+      // If the window doesn't reload after this alert,
+      // there is a major conflict with the Paystack Popup's cleanup.
+      window.location.href = window.location.origin + "/dashboard";
     } catch (err) {
-      console.error("Verification Error:", err);
-      toast.error("Payment verified, but UI sync failed. Please refresh.");
-    } finally {
-      setLoading(false);
+      // TRACE 5: What went wrong?
+      alert("CRASH: " + err.message);
+      console.error(err);
+      window.location.reload();
     }
   };
-
   if (loading && !user)
     return (
       <div className="p-20 text-center text-gray-500">Loading Dashboard...</div>
