@@ -15,47 +15,68 @@ const UpgradeModal = ({
 }) => {
   if (!isOpen) return null;
 
-  console.log("Public Key Check:", import.meta.env.VITE_PAYSTACK_PUBLIC_KEY);
-
   const [step, setStep] = useState("info");
   const [nin, setNin] = useState("");
   const [verifying, setVerifying] = useState(false);
+  const paymentReference = useMemo(() => `REF_${Date.now()}`, [isOpen]);
 
-  // UNIQUE REFERENCE: Generate a new one every time the modal opens
-  const paymentReference = useMemo(
-    () => `REF_${Date.now()}_${Math.floor(Math.random() * 1000000)}`,
-    [isOpen],
+  const config = useMemo(
+    () => ({
+      reference: paymentReference,
+      email: userEmail,
+      amount: 100000, // ₦1,000
+      publicKey: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || "", // Fallback to avoid crash
+      metadata: {
+        userId,
+        upgradeType: type,
+      },
+      onSuccess: (ref) => {
+        console.log("Payment Successful:", ref);
+        onSuccess(ref, nin); // Now nin is correctly captured
+      },
+      onClose: () => {
+        console.log("Modal closed.");
+        onClose();
+      },
+    }),
+    [paymentReference, userEmail, userId, type, nin, onSuccess, onClose],
   );
 
-  const config = {
-    reference: paymentReference,
-    email: userEmail,
-    amount: 100000, // ₦1,000
-    publicKey: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY,
-    metadata: {
-      userId: userId,
-      upgradeType: type,
-    },
-    // MOVING CALLBACKS HERE: This is the "Stable" way
-    onSuccess: (reference) => {
-      console.log("CRITICAL: Payment success detected by Config!");
-      onSuccess(reference, nin);
-    },
-    onClose: () => {
-      console.log("CRITICAL: Modal closed by user.");
-      onClose();
-    },
-  };
-
+  // 2. Initialize Hook with the stable config
   const initializePayment = usePaystackPayment(config);
 
+  // 4. Guard against missing key
+  if (!import.meta.env.VITE_PAYSTACK_PUBLIC_KEY) {
+    console.error("PAYSTACK KEY MISSING");
+  }
+
+  // This manages the "Continue" buttons
   const handleNext = () => {
+    if (!import.meta.env.VITE_PAYSTACK_PUBLIC_KEY) {
+      toast.error("Payment system not initialized. Check your connection.");
+      return;
+    }
+
     if (type === "verified" && step === "info") {
       setStep("nin");
     } else {
-      // No arguments needed here because they are in the config
-      console.log("Launching Paystack with Ref:", paymentReference);
       initializePayment();
+    }
+  };
+
+  // Missing function: Handles the transition after NIN entry
+  const handleNinVerify = async () => {
+    setVerifying(true);
+    try {
+      // Mocking the API call for now
+      // await API.post('/verify-nin', { nin, userId });
+      setTimeout(() => {
+        setStep("pay");
+        setVerifying(false);
+      }, 1500);
+    } catch (error) {
+      toast.error("NIN Verification Failed");
+      setVerifying(false);
     }
   };
 
@@ -100,7 +121,7 @@ const UpgradeModal = ({
                 ))}
               </ul>
               <button
-                onClick={handlePayClick}
+                onClick={handleNext} // Corrected: use handleNext
                 className={`w-full py-4 rounded-2xl text-white font-black uppercase tracking-widest transition hover:scale-[1.02] ${active.color}`}
               >
                 Continue
@@ -124,12 +145,9 @@ const UpgradeModal = ({
               <p className="text-[10px] text-gray-400 italic text-center">
                 *Must match: {userFirstName} {userLastName}
               </p>
-              <p className="text-[10px] text-gray-400 italic text-center">
-                WE DO NOT STORE YOUR NIN
-              </p>
               <button
                 disabled={nin.length < 11 || verifying}
-                onClick={handleNinVerify}
+                onClick={handleNinVerify} // Corrected: function defined above
                 className="w-full py-4 bg-green-600 text-white rounded-2xl font-black uppercase tracking-widest disabled:bg-gray-200"
               >
                 {verifying ? "Checking Identity..." : "Verify Identity"}
@@ -143,9 +161,7 @@ const UpgradeModal = ({
                 ✓ Identity Confirmed
               </div>
               <button
-                onClick={() =>
-                  initializePayment(onSuccessAction, onCloseAction)
-                }
+                onClick={() => initializePayment()} // Corrected: No arguments needed
                 className="w-full py-4 bg-gray-900 text-white rounded-2xl font-black uppercase tracking-widest animate-bounce"
               >
                 Pay {active.price} Now
