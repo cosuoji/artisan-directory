@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import API from "../api/axios";
 import toast from "react-hot-toast";
 import ArtisanLocationPicker from "../components/ArtisanLocationPicker";
