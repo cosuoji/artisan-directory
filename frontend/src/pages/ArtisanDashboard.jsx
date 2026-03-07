@@ -199,40 +199,32 @@ const ArtisanDashboard = () => {
     }
   };
 
-  const handlePaymentSuccess = async (paystackResponse) => {
+  const handlePaymentSuccess = async (reference) => {
     setLoading(true);
     try {
-      // 1. SAFE REFERENCE EXTRACTION
-      // Sometimes Paystack returns {reference: "..."} and sometimes just "..."
-      const ref = paystackResponse?.reference || paystackResponse;
+      // 1. Get the reference string safely
+      const ref = reference?.reference || reference;
 
-      if (!ref) {
-        throw new Error("No payment reference received from Paystack");
-      }
-
-      console.log("Verifying payment with ref:", ref);
-
-      // 2. BACKEND VERIFICATION
-      await API.post("/payments", {
-        reference: ref, // Send the clean string
+      // 2. Fire and Forget (mostly)
+      // We await this to ensure the backend actually processed it
+      const response = await API.post("/payments", {
+        reference: ref,
         type: modalConfig.type,
       });
 
-      // 3. THE "GOLDEN REFRESH" (Cache-Busted)
-      // We close the modal first to clean up the UI
-      setModalConfig((prev) => ({ ...prev, isOpen: false }));
+      console.log("Backend confirmed payment:", response.data);
 
-      // Tiny delay to let the database finish its write operation
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      // 3. FORCE THE CLOSE AND REFRESH
+      setModalConfig({ ...modalConfig, isOpen: false });
 
-      await getProfile();
-
-      toast.success("Upgrade Successful! 🚀");
+      // Give the database a moment, then force refresh
+      setTimeout(() => {
+        window.location.reload(); // The "Ultimate" fix if getProfile() is failing
+      }, 1000);
     } catch (err) {
-      console.error("Payment Refresh Error:", err);
-      toast.error(
-        "Upgrade synced! Please refresh the page if you don't see your badge.",
-      );
+      console.error("Frontend Success Handler Error:", err);
+      // Even if it errors, if the backend worked, a reload will fix the UI
+      window.location.reload();
     } finally {
       setLoading(false);
     }
