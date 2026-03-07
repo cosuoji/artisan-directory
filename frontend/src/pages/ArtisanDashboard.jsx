@@ -199,26 +199,40 @@ const ArtisanDashboard = () => {
     }
   };
 
-  const handlePaymentSuccess = async (reference) => {
+  const handlePaymentSuccess = async (paystackResponse) => {
     setLoading(true);
     try {
-      // 1. Verify payment
+      // 1. SAFE REFERENCE EXTRACTION
+      // Sometimes Paystack returns {reference: "..."} and sometimes just "..."
+      const ref = paystackResponse?.reference || paystackResponse;
+
+      if (!ref) {
+        throw new Error("No payment reference received from Paystack");
+      }
+
+      console.log("Verifying payment with ref:", ref);
+
+      // 2. BACKEND VERIFICATION
       await API.post("/payments", {
-        reference: reference.reference,
+        reference: ref, // Send the clean string
         type: modalConfig.type,
       });
 
-      // 2. WAIT for 1.5 seconds to let the DB settle
-      // This is a "magic fix" for cloud database latency
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      // 3. THE "GOLDEN REFRESH" (Cache-Busted)
+      // We close the modal first to clean up the UI
+      setModalConfig((prev) => ({ ...prev, isOpen: false }));
 
-      // 3. Now get the fresh profile
+      // Tiny delay to let the database finish its write operation
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
       await getProfile();
 
-      toast.success("Account Upgraded Successfully!");
-      setModalConfig({ ...modalConfig, isOpen: false });
+      toast.success("Upgrade Successful! 🚀");
     } catch (err) {
-      toast.error("Sync failed. Please refresh the page manually.");
+      console.error("Payment Refresh Error:", err);
+      toast.error(
+        "Upgrade synced! Please refresh the page if you don't see your badge.",
+      );
     } finally {
       setLoading(false);
     }
