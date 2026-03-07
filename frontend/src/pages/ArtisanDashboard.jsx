@@ -32,6 +32,7 @@ const ArtisanDashboard = () => {
   const tier = user?.artisanProfile?.subscriptionTier || "free";
   const maxPortfolioLimit = tier === "pro" ? 30 : 3;
   const currentPortfolioCount = profileData.portfolio?.length || 0;
+  const isVerified = user?.artisanProfile?.isVerified;
 
   useSEO({
     title: user
@@ -201,32 +202,23 @@ const ArtisanDashboard = () => {
   const handlePaymentSuccess = async (reference) => {
     setLoading(true);
     try {
-      // 1. Verify payment with backend
+      // 1. Verify payment
       await API.post("/payments", {
         reference: reference.reference,
         type: modalConfig.type,
-        // No NIN sent here anymore since we only verify, not store
       });
 
-      // 2. Success Messages
-      if (modalConfig.type === "pro") {
-        toast.success("🚀 You're now a PRO! 30 slots unlocked.", {
-          duration: 5000,
-        });
-      } else {
-        toast.success("✅ Identity Verified! Badge added to profile.");
-      }
+      // 2. WAIT for 1.5 seconds to let the DB settle
+      // This is a "magic fix" for cloud database latency
+      await new Promise((resolve) => setTimeout(resolve, 1500));
 
-      // 3. UI Cleanup & REFRESH
-      setModalConfig({ ...modalConfig, isOpen: false });
-
-      // IMPORTANT: Ensure getProfile uses the cache-buster we added
+      // 3. Now get the fresh profile
       await getProfile();
+
+      toast.success("Account Upgraded Successfully!");
+      setModalConfig({ ...modalConfig, isOpen: false });
     } catch (err) {
-      console.error("Payment Verification Error:", err);
-      toast.error(
-        err.response?.data?.msg || "Update failed. Please contact support.",
-      );
+      toast.error("Sync failed. Please refresh the page manually.");
     } finally {
       setLoading(false);
     }
