@@ -199,42 +199,44 @@ const ArtisanDashboard = () => {
     }
   };
 
-  const handlePaymentSuccess = async (paystackResponse) => {
-    // TRACE 1: Did we even enter the function?
-    alert("Step 1: Function Started");
+  // Add useCallback to your imports: import React, { useState, useEffect, useCallback } from "react";
 
-    try {
-      const ref = paystackResponse?.reference || paystackResponse;
-      const pType = modalConfig?.type; // Safe access
+  const handlePaymentSuccess = useCallback(
+    async (paystackResponse) => {
+      // TRACE 1: Should fire now!
+      alert("Success: Communication Link Established!");
+      console.log("Paystack Response:", paystackResponse);
 
-      // TRACE 2: Do we have the data?
-      alert(`Step 2: Data Check - Ref: ${ref}, Type: ${pType}`);
+      try {
+        setLoading(true);
+        const ref = paystackResponse?.reference || paystackResponse;
+        const pType = modalConfig?.type;
 
-      if (!ref) throw new Error("Missing Reference");
+        await API.post("/payments", {
+          reference: ref,
+          type: pType,
+        });
 
-      setLoading(true);
+        toast.success("Upgrade Successful!");
+        setModalConfig((prev) => ({ ...prev, isOpen: false }));
 
-      // TRACE 3: Attempting API call
-      console.log("Calling API...");
-      const res = await API.post("/payments", {
-        reference: ref,
-        type: pType,
-      });
+        // Refresh data
+        await getProfile();
 
-      // TRACE 4: API responded
-      alert("Step 3: API Success! Now reloading...");
+        // Final check: If the UI didn't update, force it
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+      } catch (err) {
+        console.error("Verification Error:", err);
+        toast.error("Payment verified, but server sync failed.");
+      } finally {
+        setLoading(false);
+      }
+    },
+    [modalConfig.type],
+  ); // Only recreate if type changes
 
-      // THE ULTIMATE RELOAD
-      // If the window doesn't reload after this alert,
-      // there is a major conflict with the Paystack Popup's cleanup.
-      window.location.href = window.location.origin + "/dashboard";
-    } catch (err) {
-      // TRACE 5: What went wrong?
-      alert("CRASH: " + err.message);
-      console.error(err);
-      window.location.reload();
-    }
-  };
   if (loading && !user)
     return (
       <div className="p-20 text-center text-gray-500">Loading Dashboard...</div>

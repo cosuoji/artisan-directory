@@ -20,19 +20,33 @@ const UpgradeModal = ({
   const [verifying, setVerifying] = useState(false);
 
   // Paystack Configuration
-  const config = {
-    reference: new Date().getTime().toString(),
-    email: userEmail,
-    amount: type === "pro" ? 100000 : 100000, // Adjusted to ₦5k and ₦2.5k in Kobo
-    publicKey: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY,
-    metadata: {
-      userId: userId,
-      upgradeType: type,
-      nin: type === "verified" ? nin : null,
-    },
-  };
+  const config = useMemo(
+    () => ({
+      reference: `REF_${Math.floor(Math.random() * 1000000000)}`,
+      email: userEmail,
+      amount: 100000, // ₦1,000 in Kobo
+      publicKey: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY,
+      metadata: {
+        userId: userId,
+        upgradeType: type,
+      },
+    }),
+    [userEmail, type, userId],
+  ); // Only changes if these specific values change
 
   const initializePayment = usePaystackPayment(config);
+  const handlePayClick = () => {
+    // We call initializePayment and pass the SUCCESS and CLOSE handlers directly
+    initializePayment(
+      (ref) => {
+        alert("Modal: Payment received, sending to Dashboard...");
+        onSuccess(ref, nin); // Call the parent function
+      },
+      () => {
+        onClose(); // Call the parent close
+      },
+    );
+  };
 
   // Step 2: Verify NIN with Backend BEFORE payment
   const handleNinVerify = async () => {
@@ -112,7 +126,7 @@ const UpgradeModal = ({
                 ))}
               </ul>
               <button
-                onClick={handleNext}
+                onClick={handlePayClick}
                 className={`w-full py-4 rounded-2xl text-white font-black uppercase tracking-widest transition hover:scale-[1.02] ${active.color}`}
               >
                 Continue
