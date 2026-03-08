@@ -62,6 +62,9 @@ const UpgradeModal = ({
 
   // Explicitly defined success/close handlers to pass into the trigger
   const onSuccessAction = (ref) => {
+    // Force the modal to close locally first so the user isn't stuck
+    onClose();
+    // Then trigger the parent dashboard's logic
     onSuccess(ref, nin);
   };
 
@@ -153,7 +156,8 @@ const UpgradeModal = ({
               </div>
               <button
                 onClick={() => {
-                  console.log("Triggering Paystack for:", type);
+                  console.log("Triggering Paystack...");
+                  // Pass the actions directly. This is the most stable way.
                   initializePayment(onSuccessAction, onCloseAction);
                 }}
                 className="w-full py-4 bg-gray-900 text-white rounded-2xl font-black uppercase tracking-widest animate-pulse"

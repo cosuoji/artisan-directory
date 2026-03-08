@@ -203,39 +203,46 @@ const ArtisanDashboard = () => {
 
   const handlePaymentSuccess = useCallback(
     async (paystackResponse) => {
-      // TRACE 1: Should fire now!
-      alert("Success: Communication Link Established!");
-      console.log("Paystack Response:", paystackResponse);
+      // Immediate feedback
+      toast.loading("Verifying payment...", { id: "payment-toast" });
 
       try {
         setLoading(true);
-        const ref = paystackResponse?.reference || paystackResponse;
+        // Ensure we get the reference string regardless of format
+        const ref =
+          paystackResponse?.reference ||
+          (typeof paystackResponse === "string" ? paystackResponse : "");
         const pType = modalConfig?.type;
 
+        // 1. Close modal immediately in dashboard state
+        setModalConfig((prev) => ({ ...prev, isOpen: false }));
+
+        // 2. Verify with Backend
         await API.post("/payments", {
           reference: ref,
           type: pType,
         });
 
-        toast.success("Upgrade Successful!");
-        setModalConfig((prev) => ({ ...prev, isOpen: false }));
+        toast.success("Upgrade Successful!", { id: "payment-toast" });
 
-        // Refresh data
+        // 3. REFRESH DATA
         await getProfile();
 
-        // Final check: If the UI didn't update, force it
-        setTimeout(() => {
-          window.location.reload();
-        }, 1000);
+        // 4. Confetti Trigger if Pro
+        if (pType === "pro") {
+          confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
+        }
       } catch (err) {
         console.error("Verification Error:", err);
-        toast.error("Payment verified, but server sync failed.");
+        toast.error("Server sync failed. Please refresh.", {
+          id: "payment-toast",
+        });
       } finally {
         setLoading(false);
       }
     },
-    [modalConfig.type],
-  ); // Only recreate if type changes
+    [modalConfig.type, getProfile], // Added getProfile here
+  );
 
   const handleModalClose = async () => {
     setModalConfig((prev) => ({ ...prev, isOpen: false }));
