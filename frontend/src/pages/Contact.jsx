@@ -17,15 +17,27 @@ const Contact = () => {
     e.preventDefault();
     setLoading(true);
 
-    // Simulating an API request. You can hook this up to your backend later.
-    // e.g., await API.post("/contact", formData);
-    setTimeout(() => {
-      setLoading(false);
-      toast.success(
-        "Message sent successfully! We will get back to you shortly.",
+    try {
+      const response = await fetch(
+        `https://formspree.io/f/${import.meta.env.VITE_FORMSPREE_ID}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(formData),
+        },
       );
-      setFormData({ name: "", email: "", subject: "", message: "" });
-    }, 1500);
+
+      if (response.ok) {
+        toast.success("Message sent! We'll get back to you shortly.");
+        setFormData({ name: "", email: "", subject: "", message: "" });
+      } else {
+        toast.error("Oops! There was a problem sending your message.");
+      }
+    } catch (err) {
+      toast.error("Check your internet connection and try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

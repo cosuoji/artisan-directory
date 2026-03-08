@@ -23,6 +23,8 @@ import ArtisanDashboard from "./pages/ArtisanDashboard";
 import ProfileRedirect from "./pages/ProfileRedirect";
 import ArtisanProfileView from "./pages/ArtisanProfileView";
 import Contact from "./pages/Contact";
+import AdminDashboard from "./pages/AdminDashboard";
+
 //Inner Pages
 import About from "./pages/innerpages/About.jsx";
 import Cookies from "./pages/innerpages/Cookies.jsx";
@@ -63,6 +65,9 @@ function App() {
             {/* Artisan Only Routes */}
             <Route element={<ProtectedRoute allowedRoles={["artisan"]} />}>
               <Route path="/artisan-dashboard" element={<ArtisanDashboard />} />
+            </Route>
+            <Route element={<ProtectedRoute allowedRoles={["admin"]} />}>
+              <Route path="/admin-dashboard" element={<AdminDashboard />} />
             </Route>
             {/* Customer Only Routes */}
             <Route element={<ProtectedRoute allowedRoles={["customer"]} />}>

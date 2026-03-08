@@ -256,6 +256,19 @@ const ArtisanDashboard = () => {
     await getProfile();
   };
 
+  // Calculate days remaining for Pro status
+  const getDaysRemaining = () => {
+    if (!user?.artisanProfile?.proExpiresAt) return null;
+    const expiry = new Date(user.artisanProfile.proExpiresAt);
+    const now = new Date();
+    const diffTime = expiry - now;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays > 0 ? diffDays : 0;
+  };
+
+  const daysLeft = getDaysRemaining();
+  const isExpired = tier === "free" && user?.artisanProfile?.proExpiresAt;
+
   if (loading && !user)
     return (
       <div className="p-20 text-center text-gray-500">Loading Dashboard...</div>
@@ -284,16 +297,28 @@ const ArtisanDashboard = () => {
             </span>
           )}
         </div>
-        {user?.artisanProfile?.subscriptionTier === "pro" && (
-          <div className="mt-2 inline-flex items-center gap-2 bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border border-blue-100">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
-            </span>
-            Pro Member Active
-          </div>
-        )}
-
+        {/* --- Pro Status Logic --- */}
+        <div className="flex items-center gap-3">
+          {tier === "pro" ? (
+            <div className="flex flex-col items-end">
+              <div className="bg-blue-50 text-blue-700 px-4 py-2 rounded-lg font-bold text-sm border border-blue-100 flex items-center gap-2">
+                <span>⭐</span> PRO MEMBER
+              </div>
+            </div>
+          ) : (
+            <button
+              onClick={() => setModalConfig({ isOpen: true, type: "pro" })}
+              className={`${
+                isExpired
+                  ? "bg-red-600 hover:bg-red-700"
+                  : "bg-blue-600 hover:bg-blue-700"
+              } text-white px-4 py-2 rounded-lg font-bold text-sm transition-colors shadow-sm flex items-center gap-2`}
+            >
+              <span>{isExpired ? "⚠️" : "🚀"}</span>
+              {isExpired ? "RENEW PRO" : "GO PRO"}
+            </button>
+          )}
+        </div>
         {/* CTA Buttons */}
         <div className="flex items-center gap-4">
           {!user?.artisanProfile?.isVerified && (
@@ -472,9 +497,11 @@ const ArtisanDashboard = () => {
                     onClick={() =>
                       setModalConfig({ isOpen: true, type: "pro" })
                     }
-                    className="text-[10px] font-black text-blue-600 uppercase tracking-widest hover:underline"
+                    className="text-[10px] font-black text-blue-600 uppercase tracking-widest hover:underline flex items-center gap-1"
                   >
-                    🚀 Go Pro for 30 slots
+                    {isExpired
+                      ? "🔄 Renew Pro to unlock your 30 slots"
+                      : "🚀 Go Pro for 30 slots"}
                   </button>
                 )}
               </div>

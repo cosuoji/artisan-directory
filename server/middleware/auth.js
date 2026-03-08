@@ -16,6 +16,13 @@ export const protect = async (req, res, next) => {
       return res.status(401).json({ msg: "Not authorized" });
     }
 
+    // --- ADDED: Block banned users instantly ---
+    if (req.user.isBanned) {
+      return res.status(403).json({
+        msg: "Your account has been suspended. Please contact support.",
+      });
+    }
+
     // ALLOW access to the verify-email route even if unverified
     // but BLOCK other routes
     if (

@@ -17,10 +17,13 @@ const UserSchema = new Schema(
     password: { type: String, required: true },
     role: {
       type: String,
-      enum: ["customer", "artisan"],
+      enum: ["customer", "artisan", "admin"],
       default: "customer",
     },
-    // --- ADDED: Verification Fields ---
+    isBanned: {
+      type: Boolean,
+      default: false,
+    },
     isEmailVerified: { type: Boolean, default: false },
     emailVerificationOTP: String,
     otpExpires: Date,
@@ -81,6 +84,11 @@ const UserSchema = new Schema(
         type: String,
         enum: ["free", "pro"],
         default: "free",
+      },
+      proExpiresAt: {
+        // <-- ADD THIS
+        type: Date,
+        default: null,
       },
       isSponsored: { type: Boolean, default: false },
     },

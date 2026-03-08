@@ -310,6 +310,19 @@ router.get("/me", protect, async (req, res) => {
       return res.status(404).json({ msg: "User not found" });
     }
 
+    // Check if subscription has expired
+    if (
+      user.role === "artisan" &&
+      user.artisanProfile.subscriptionTier === "pro" &&
+      user.artisanProfile.proExpiresAt &&
+      new Date() > user.artisanProfile.proExpiresAt
+    ) {
+      // It's expired! Downgrade them silently before sending the response
+      user.artisanProfile.subscriptionTier = "free";
+      user.artisanProfile.proExpiresAt = null;
+      await user.save();
+    }
+
     res.json(user);
   } catch (err) {
     console.error(err.message);

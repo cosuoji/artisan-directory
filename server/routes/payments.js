@@ -24,6 +24,21 @@ router.post("/", protect, authorize("artisan"), async (req, res) => {
 
       if (type === "pro") {
         update = { "artisanProfile.subscriptionTier": "pro" };
+
+        // Inside your payment controller (where you verify Paystack)
+        const handleSubscriptionSuccess = async (userId) => {
+          const expiryDate = new Date();
+          expiryDate.setDate(expiryDate.getDate() + 30); // Sets date to 30 days from now
+
+          await User.findByIdAndUpdate(userId, {
+            "artisanProfile.subscriptionTier": "pro",
+            "artisanProfile.proExpiresAt": expiryDate,
+          });
+        };
+
+        // inside your route handler
+        await handleSubscriptionSuccess(req.user._id);
+        res.json({ msg: "Payment verified and Pro status activated" });
       } else if (type === "verified") {
         // 2. Perform one last Name Match check before upgrading
         // (This prevents users from skipping the Modal's pre-check)
