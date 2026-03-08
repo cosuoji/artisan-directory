@@ -156,9 +156,21 @@ const UpgradeModal = ({
               </div>
               <button
                 onClick={() => {
-                  console.log("Triggering Paystack...");
-                  // Pass the actions directly. This is the most stable way.
-                  initializePayment(onSuccessAction, onCloseAction);
+                  // 1. Manually trigger the payment
+                  initializePayment({
+                    // 2. Define the callbacks INSIDE the call to bypass scoping issues
+                    onSuccess: (response) => {
+                      console.log("Paystack Success:", response);
+                      // Close modal first
+                      onClose();
+                      // Then run your dashboard update logic
+                      onSuccess(response, nin);
+                    },
+                    onClose: () => {
+                      console.log("User closed the Paystack window");
+                      onClose();
+                    },
+                  });
                 }}
                 className="w-full py-4 bg-gray-900 text-white rounded-2xl font-black uppercase tracking-widest animate-pulse"
               >
