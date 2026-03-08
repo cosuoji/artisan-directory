@@ -203,45 +203,48 @@ const ArtisanDashboard = () => {
 
   const handlePaymentSuccess = useCallback(
     async (paystackResponse) => {
-      // Immediate feedback
       toast.loading("Verifying payment...", { id: "payment-toast" });
 
       try {
-        setLoading(true);
-        // Ensure we get the reference string regardless of format
         const ref =
           paystackResponse?.reference ||
           (typeof paystackResponse === "string" ? paystackResponse : "");
         const pType = modalConfig?.type;
 
-        // 1. Close modal immediately in dashboard state
         setModalConfig((prev) => ({ ...prev, isOpen: false }));
 
-        // 2. Verify with Backend
+        // 1. Verify with Backend
         await API.post("/payments", {
           reference: ref,
           type: pType,
         });
 
-        toast.success("Upgrade Successful!", { id: "payment-toast" });
+        // 2. THE FIX: Wait 3 seconds to ensure the DB has propagated the changes
+        toast.loading("Syncing your new status...", { id: "payment-toast" });
+        await new Promise((resolve) => setTimeout(resolve, 3000));
 
         // 3. REFRESH DATA
         await getProfile();
 
-        // 4. Confetti Trigger if Pro
+        toast.success("Upgrade Successful!", { id: "payment-toast" });
+
         if (pType === "pro") {
           confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
         }
       } catch (err) {
         console.error("Verification Error:", err);
-        toast.error("Server sync failed. Please refresh.", {
-          id: "payment-toast",
-        });
+        // Now, only show this if it REALLY fails after the wait
+        toast.error(
+          "Sync was slow, but your payment was successful. Please refresh.",
+          {
+            id: "payment-toast",
+          },
+        );
       } finally {
         setLoading(false);
       }
     },
-    [modalConfig.type, getProfile], // Added getProfile here
+    [modalConfig.type, getProfile],
   );
 
   const handleModalClose = async () => {
