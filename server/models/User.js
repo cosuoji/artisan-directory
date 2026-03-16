@@ -57,7 +57,6 @@ const UserSchema = new Schema(
       category: String,
       whatsapp: {
         type: String,
-        required: true,
         set: (val) => {
           if (!val) return val;
           // 1. Remove everything that isn't a number (+, spaces, dashes)
