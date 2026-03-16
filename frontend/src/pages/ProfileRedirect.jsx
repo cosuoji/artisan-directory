@@ -1,43 +1,28 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { jwtDecode } from "jwt-decode";
+import { useAuth } from "../context/AuthContext";
 
 const ProfileRedirect = () => {
   const navigate = useNavigate();
+  const { user, loading } = useAuth(); // Use context instead of local storage
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
+    if (loading) return; // Wait for the /auth/me check to finish
 
-    if (!token) {
+    if (!user) {
       navigate("/login");
       return;
     }
 
-    try {
-      // Decode the token locally - no API call needed!
-      const decoded = jwtDecode(token);
-
-      // Check if token is expired
-      const currentTime = Date.now() / 1000;
-      if (decoded.exp < currentTime) {
-        localStorage.removeItem("token");
-        navigate("/login");
-        return;
-      }
-
-      // Route based on the role we put in the JWT on the backend
-      if (decoded.role === "artisan") {
-        navigate("/artisan-dashboard");
-      } else {
-        navigate("/customer-profile");
-      }
-    } catch (err) {
-      localStorage.removeItem("token");
-      navigate("/login");
+    // Route based on the user object returned from the backend
+    if (user.role === "artisan") {
+      navigate("/artisan-dashboard");
+    } else {
+      navigate("/customer-profile");
     }
-  }, [navigate]);
+  }, [user, loading, navigate]);
 
-  return null; // This component is so fast it doesn't even need a loading spinner
+  return <p>Redirecting...</p>;
 };
 
 export default ProfileRedirect;

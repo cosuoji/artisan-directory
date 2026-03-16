@@ -21,31 +21,24 @@ const ArtisanSignup = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     setLoading(true);
     try {
-      // Hits your Node/Express route: POST /api/auth/signup-artisan
+      // Backend should now set the HttpOnly cookie in this response
       const res = await API.post("/auth/signup-artisan", formData);
 
-      // Store the JWT returned by Express
-      // 1. Store token for the "Verify" request (which is protected)
-      localStorage.setItem("token", res.data.token);
-      // 2. Store email/role temporarily for the Verify UI
+      // 1. Store ONLY non-sensitive UI info
       localStorage.setItem("email_to_verify", formData.email);
-      localStorage.setItem("user_role", res.data.role);
+
+      // 2. We don't store the token! The browser has it in a cookie now.
 
       toast.success("Account created! Please verify your email.");
-      navigate("/verify-email"); // REDIRECT HERE INSTEAD
+      navigate("/verify-email");
     } catch (err) {
-      // Catching the errors sent by your express-validator or custom logic
-      toast.error(
-        err.response?.data?.msg || "Signup failed. Please try again.",
-      );
+      toast.error(err.response?.data?.msg || "Signup failed.");
     } finally {
       setLoading(false);
     }
   };
-
   return (
     <div className="min-h-[80vh] bg-gray-50 flex flex-col justify-center py-12 px-6">
       <div className="max-w-md w-full mx-auto bg-white p-8 border border-gray-200 rounded-2xl shadow-sm">

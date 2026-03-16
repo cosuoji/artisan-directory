@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import API from "../api/axios";
 import toast from "react-hot-toast";
 import useSEO from "../hooks/useSEO";
+import { useAuth } from "../context/AuthContext";
 
 const ArtisanProfileView = () => {
   const { id } = useParams();
@@ -10,6 +11,7 @@ const ArtisanProfileView = () => {
   const [reviews, setReviews] = useState([]);
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const { user: authUser } = useAuth(); // Rename to avoid conflict with 'user' state
 
   // Review Form State
   const [rating, setRating] = useState(5);
@@ -29,34 +31,31 @@ const ArtisanProfileView = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // 1. Fetch Artisan Data (Public)
-        const artisanRes = await API.get(`/users/artisan/${id}`);
+        // 1 & 2. Public data (Artisan & Reviews)
+        const [artisanRes, reviewsRes] = await Promise.all([
+          API.get(`/users/artisan/${id}`),
+          API.get(`/reviews/artisan/${id}`),
+        ]);
         setArtisan(artisanRes.data);
-
-        // 2. Fetch Reviews (Public)
-        const reviewsRes = await API.get(`/reviews/artisan/${id}`);
         setReviews(reviewsRes.data);
 
-        // 3. ONLY get current user IF they are logged in
-        const token = localStorage.getItem("token");
-        if (token) {
+        // 3. ONLY get current user if Context says they are logged in
+        if (authUser) {
           try {
             const userRes = await API.get("/auth/me");
             setCurrentUser(userRes.data);
           } catch (authErr) {
-            console.log("Token invalid or expired, staying as guest.");
-            // Don't throw here, just let them be a guest
+            console.log("Auth check failed");
           }
         }
       } catch (err) {
         console.error("Fetch error:", err);
-        toast.error("Could not load artisan profile.");
       } finally {
         setLoading(false);
       }
     };
     fetchData();
-  }, [id]);
+  }, [id, authUser]); // Added authUser to dependencies
 
   const handleDeleteReview = async (reviewId) => {
     if (!window.confirm("Are you sure you want to delete this review?")) return;

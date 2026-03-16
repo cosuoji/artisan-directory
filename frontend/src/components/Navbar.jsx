@@ -22,7 +22,7 @@ const Navbar = () => {
   };
 
   const handleLogout = () => {
-    logout(); // This clears context + localStorage in one go
+    logout();
     toast.success("Logged out successfully");
     navigate("/");
   };

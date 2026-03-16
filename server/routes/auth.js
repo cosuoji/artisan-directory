@@ -259,13 +259,21 @@ router.post("/verify-email", async (req, res) => {
     user.emailVerificationOTP = undefined;
     user.otpExpires = undefined;
     await user.save();
-    // NEW: Generate a fresh token for auto-login
-    const token = generateToken(user._id); // Use your existing token generator
 
-    // NEW: Send back the token and user role so the frontend can route them
+    // 1. Generate the token
+    const token = generateToken(user._id);
+
+    // 2. Set the cookie (Same settings as your Login route!)
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: true, // Required for production/Render
+      sameSite: "none", // Required for cross-domain (Netlify to Render)
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    });
+
+    // 3. Return ONLY the user data
     return res.json({
       msg: "Email verified successfully!",
-      token: token,
       user: {
         id: user._id,
         role: user.role,

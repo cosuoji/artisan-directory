@@ -28,15 +28,21 @@ const VerifyEmail = () => {
     e.preventDefault();
     setLoading(true);
     try {
+      // The backend should verify the OTP and, if correct,
+      // update the user in the DB and potentially refresh the cookie.
       const res = await API.post("/auth/verify-email", { email, otp });
 
-      // Set success to true BEFORE removing item and navigating
       setIsSuccess(true);
-      login(res.data.token, res.data.user);
+
+      // 1. Pass ONLY user data to login
+      login(res.data.user);
 
       toast.success("Email verified! Welcome to Abeg Fix.");
+
+      // 2. Clean up UI-only storage
       localStorage.removeItem("email_to_verify");
 
+      // 3. Navigate based on the fresh user object
       navigate(
         res.data.user.role === "artisan" ? "/artisan-dashboard" : "/directory",
       );
