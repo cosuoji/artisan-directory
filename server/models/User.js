@@ -55,24 +55,8 @@ const UserSchema = new Schema(
     artisanProfile: {
       businessName: String,
       category: String,
-      whatsapp: {
-        type: String,
-        required: true,
-        set: (val) => {
-          if (!val) return val;
-          // 1. Remove everything that isn't a number (+, spaces, dashes)
-          let cleaned = val.replace(/\D/g, "");
-          // 2. If it starts with 0, replace it with 234
-          if (cleaned.startsWith("0")) {
-            cleaned = "234" + cleaned.substring(1);
-          }
-          // 3. If it's exactly 10 digits (e.g. 803...), it's missing the prefix entirely
-          if (cleaned.length === 10) {
-            cleaned = "234" + cleaned;
-          }
-          return cleaned;
-        },
-      },
+      whatsapp: String,
+      nin: String,
       bio: String,
       profilePic: String,
       address: String, // The readable text

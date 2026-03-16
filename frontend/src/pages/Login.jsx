@@ -19,19 +19,21 @@ const Login = () => {
     setLoading(true);
 
     try {
-      // 1. Send credentials (Cookie is set by backend automatically)
+      // 1. Send credentials
       const res = await API.post("/auth/login", { email, password });
 
-      // 2. Use the Context Login
-      // Note: We no longer pass 'token' because JS can't/shouldn't touch it.
-      // We only pass the user data.
-      login(res.data.user);
+      // 2. Use the Context Login (This handles storage + state)
+      login(res.data.token, res.data.user);
 
       toast.success("Welcome back!");
 
+<<<<<<< HEAD
       console.log(res.data.user);
 
       // 3. Role-based redirection
+=======
+      // 3. Role-based redirection (Use the role from res.data.user for consistency)
+>>>>>>> parent of 8c6f9a5 (Switch to cookie-based auth and BVN verification)
       const userRole = res.data.user.role;
       if (userRole === "artisan") {
         navigate("/artisan-dashboard");
@@ -39,6 +41,7 @@ const Login = () => {
         navigate("/customer-profile");
       }
     } catch (err) {
+      // Handle incorrect password or "user not found"
       toast.error(
         err.response?.data?.msg || "Login failed. Check your credentials.",
       );
@@ -102,7 +105,7 @@ const Login = () => {
         <div className="mt-8 pt-6 border-t border-gray-100 text-center text-sm text-gray-600">
           Don't have an account?{" "}
           <Link
-            to="/signup"
+            to="/customer-signup"
             className="text-blue-600 font-bold hover:underline"
           >
             Sign up here

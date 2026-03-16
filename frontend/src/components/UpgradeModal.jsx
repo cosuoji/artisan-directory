@@ -15,7 +15,7 @@ const UpgradeModal = ({
 }) => {
   // 1. HOOKS MUST BE AT THE TOP
   const [step, setStep] = useState("info");
-  const [bvn, setBvn] = useState(""); // Changed from nin
+  const [nin, setNin] = useState("");
   const [verifying, setVerifying] = useState(false);
 
   const paymentReference = useMemo(() => `REF_${Date.now()}`, [isOpen]);
@@ -39,39 +39,33 @@ const UpgradeModal = ({
   // 3. ACTION HANDLERS
   const handleNext = () => {
     if (type === "verified" && step === "info") {
-      setStep("bvn"); // Changed from "nin"
+      setStep("nin");
     } else {
       // For "pro" or other types, go straight to the payment confirmation step
       setStep("pay");
     }
   };
 
-  const handleBvnVerify = async () => {
+  const handleNinVerify = async () => {
     setVerifying(true);
     try {
-      const res = await API.post("/payments/verify-bvn-only", { bvn });
-      toast.success(res.data.msg);
-      setStep("pay");
+      // Simulate NIN verification delay
+      setTimeout(() => {
+        setStep("pay");
+        setVerifying(false);
+      }, 1500);
     } catch (error) {
-      const status = error.response?.status;
-      const errorMsg = error.response?.data?.msg || "";
-
-      if (status === 503 || errorMsg.includes("service unavailable")) {
-        toast.error(
-          "National identity portal is currently down. Please try again in a few minutes.",
-        );
-      } else {
-        toast.error(errorMsg || "Verification Failed");
-      }
-    } finally {
+      toast.error("NIN Verification Failed");
       setVerifying(false);
     }
   };
 
   // Explicitly defined success/close handlers to pass into the trigger
   const onSuccessAction = (ref) => {
+    // Force the modal to close locally first so the user isn't stuck
     onClose();
-    onSuccess(ref, bvn); // Changed from nin
+    // Then trigger the parent dashboard's logic
+    onSuccess(ref, nin);
   };
 
   const onCloseAction = () => {
@@ -127,28 +121,25 @@ const UpgradeModal = ({
             </>
           )}
 
-          {step === "bvn" && ( // Changed from "nin"
+          {step === "nin" && (
             <div className="space-y-4">
               <label className="block text-xs font-black uppercase text-gray-400">
-                Enter 11-digit BVN
+                Enter 11-digit NIN
               </label>
               <input
                 type="text"
                 maxLength="11"
-                value={bvn}
-                onChange={(e) => setBvn(e.target.value.replace(/\D/g, ""))} // Only allow numbers
+                value={nin}
+                onChange={(e) => setNin(e.target.value)}
                 className="w-full p-4 border-2 border-gray-100 rounded-2xl font-bold tracking-[0.3em] text-center focus:border-green-500 outline-none transition"
                 placeholder="00000000000"
               />
               <p className="text-[10px] text-gray-400 italic text-center">
-                *Must exactly match: {userFirstName} {userLastName}
-              </p>
-              <p className="text-[10px] text-gray-400 italic text-center mt-1">
-                Dial *565*0# to check your BVN
+                *Must match: {userFirstName} {userLastName}
               </p>
               <button
-                disabled={bvn.length < 11 || verifying}
-                onClick={handleBvnVerify}
+                disabled={nin.length < 11 || verifying}
+                onClick={handleNinVerify}
                 className="w-full py-4 bg-green-600 text-white rounded-2xl font-black uppercase tracking-widest disabled:bg-gray-200"
               >
                 {verifying ? "Checking Identity..." : "Verify Identity"}
@@ -165,11 +156,15 @@ const UpgradeModal = ({
               </div>
               <button
                 onClick={() => {
+                  // 1. Manually trigger the payment
                   initializePayment({
+                    // 2. Define the callbacks INSIDE the call to bypass scoping issues
                     onSuccess: (response) => {
                       console.log("Paystack Success:", response);
+                      // Close modal first
                       onClose();
-                      onSuccess(response, bvn); // Changed from nin
+                      // Then run your dashboard update logic
+                      onSuccess(response, nin);
                     },
                     onClose: () => {
                       console.log("User closed the Paystack window");

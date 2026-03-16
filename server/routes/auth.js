@@ -222,6 +222,7 @@ router.post(
 
       // 4. Generate Token and Send Response
       const token = generateToken(user._id);
+<<<<<<< HEAD
       res
         .cookie("token", token, {
           httpOnly: true, // Prevents JS access (The most important part!)
@@ -232,6 +233,12 @@ router.post(
         .json({
           user: { id: user._id, role: user.role, firstName: user.firstName },
         });
+=======
+      res.json({
+        token,
+        user: { id: user._id, role: user.role, firstName: user.firstName },
+      });
+>>>>>>> parent of 8c6f9a5 (Switch to cookie-based auth and BVN verification)
     } catch (err) {
       res.status(500).send("Server error");
     }
@@ -309,8 +316,25 @@ router.put("/update-password", protect, async (req, res) => {
 // @route   GET api/auth/me
 router.get("/me", protect, async (req, res) => {
   try {
-    // 'req.user' is already populated by your 'protect' middleware
+    // req.user.id comes from the 'protect' middleware
     const user = await User.findById(req.user.id).select("-password");
+
+    if (!user) {
+      return res.status(404).json({ msg: "User not found" });
+    }
+
+    // Check if subscription has expired
+    if (
+      user.role === "artisan" &&
+      user.artisanProfile.subscriptionTier === "pro" &&
+      user.artisanProfile.proExpiresAt &&
+      new Date() > user.artisanProfile.proExpiresAt
+    ) {
+      // It's expired! Downgrade them silently before sending the response
+      user.artisanProfile.subscriptionTier = "free";
+      user.artisanProfile.proExpiresAt = null;
+      await user.save();
+    }
 
     res.json(user);
   } catch (err) {
@@ -346,10 +370,6 @@ router.post("/resend-otp", async (req, res) => {
   } catch (err) {
     res.status(500).send("Server error");
   }
-});
-
-router.post("/logout", (req, res) => {
-  res.clearCookie("token").json({ msg: "Logged out successfully" });
 });
 
 router.put("/update-profile", protect, authorize("artisan"), updateProfile);

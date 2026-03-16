@@ -2,8 +2,7 @@ import jwt from "jsonwebtoken";
 import User from "../models/User.js";
 
 export const protect = async (req, res, next) => {
-  // Look for the token in cookies instead of headers
-  const token = req.cookies.token;
+  const token = req.header("Authorization")?.split(" ")[1];
 
   if (!token) {
     return res.status(401).json({ msg: "No token, authorization denied" });
@@ -17,16 +16,23 @@ export const protect = async (req, res, next) => {
       return res.status(401).json({ msg: "Not authorized" });
     }
 
-    // Your existing logic for banned/unverified users remains the same
+    // --- ADDED: Block banned users instantly ---
     if (req.user.isBanned) {
-      return res.status(403).json({ msg: "Account suspended." });
+      return res.status(403).json({
+        msg: "Your account has been suspended. Please contact support.",
+      });
     }
 
+    // ALLOW access to the verify-email route even if unverified
+    // but BLOCK other routes
     if (
       !req.user.isEmailVerified &&
       !req.originalUrl.includes("verify-email")
     ) {
-      return res.status(403).json({ msg: "Verify email.", unverified: true });
+      return res.status(403).json({
+        msg: "Please verify your email to continue.",
+        unverified: true,
+      });
     }
 
     next();

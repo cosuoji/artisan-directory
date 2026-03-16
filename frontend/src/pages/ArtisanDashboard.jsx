@@ -34,7 +34,6 @@ const ArtisanDashboard = () => {
   const currentPortfolioCount = profileData.portfolio?.length || 0;
   const isVerified = user?.artisanProfile?.isVerified;
 
-  console.log(user);
   useSEO({
     title: user
       ? `${user.firstName} - ${user.artisanProfile.category} | Artisan Dashboard`
@@ -451,7 +450,7 @@ const ArtisanDashboard = () => {
                   onChange={(e) =>
                     setProfileData({ ...profileData, whatsapp: e.target.value })
                   }
-                  placeholder="080..."
+                  placeholder="23480..."
                   className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
                 />
               </div>

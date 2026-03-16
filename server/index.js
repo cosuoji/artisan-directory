@@ -5,7 +5,6 @@ import mongoose from "mongoose";
 import cron from "node-cron";
 import User from "./models/User.js";
 import rateLimit from "express-rate-limit";
-import cookieParser from "cookie-parser";
 
 //routes
 import authRoutes from "./routes/auth.js";
@@ -23,6 +22,7 @@ const app = express();
 app.set("trust proxy", 1); // Crucial for Render/Netlify/Cloudflare
 
 // Middleware
+<<<<<<< HEAD
 //
 
 const allowedOrigins = [
@@ -54,8 +54,10 @@ app.use(
   }),
 );
 
+=======
+app.use(cors());
+>>>>>>> parent of 8c6f9a5 (Switch to cookie-based auth and BVN verification)
 app.use(express.json()); // Body parser
-app.use(cookieParser());
 
 // Global limiter: Max 100 requests per 15 mins
 const globalLimiter = rateLimit({
@@ -83,9 +85,6 @@ mongoose
 initCronJobs();
 
 app.use("/api", globalLimiter);
-app.get("/", (req, res) => {
-  res.send("Abeg Fix API is running...");
-});
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/reviews", reviewRoutes);
