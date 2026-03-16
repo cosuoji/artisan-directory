@@ -2,134 +2,175 @@ import express from "express";
 import axios from "axios";
 import { protect, authorize } from "../middleware/auth.js";
 import User from "../models/User.js";
+import dotenv from "dotenv";
+dotenv.config();
 
 const router = express.Router();
 
 // routes/payments.js
+//
+
+// --- PREMBLY BVN HELPER (v1 API) ---
+const verifyBVNWithPrembly = async (bvn) => {
+  // Updated URL from the latest 2026 docs
+  const url = "https://api.prembly.com/verification/bvn";
+
+  try {
+    const response = await axios.post(
+      url,
+      { number: bvn.toString() },
+      {
+        headers: {
+          "x-api-key": process.env.PREMBLY_SECRET_KEY, // Your Secret Key
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+      },
+    );
+    console.log(response.data);
+    // According to the 201 result you found:
+    // response.data.status is true and response_code is "00"
+    if (response.data.status && response.data.response_code === "00") {
+      return response.data.data; // This contains firstName, lastName, etc.
+    } else {
+      throw new Error(response.data.detail || "BVN validation failed");
+    }
+  } catch (error) {
+    console.error("Prembly API Error:", error.response?.data || error.message);
+    throw new Error(
+      error.response?.data?.detail || "Identity service unavailable",
+    );
+  }
+};
+
+router.post(
+  "/verify-bvn-only",
+  protect,
+  authorize("artisan"),
+  async (req, res) => {
+    const { bvn } = req.body;
+
+    if (!bvn || bvn.length !== 11) {
+      return res
+        .status(400)
+        .json({ msg: "Please enter a valid 11-digit BVN." });
+    }
+
+    try {
+      // 1. Call Prembly
+      const bvnData = await verifyBVNWithPrembly(bvn);
+
+      // 2. Normalize Function (Extracts last 10 digits to avoid +234 vs 080 issues)
+      const normalize = (phone) =>
+        phone.toString().replace(/\D/g, "").slice(-10);
+
+      // 3. Prepare Data for Comparison
+      const accountFirst = req.user.firstName.toLowerCase().trim();
+      const accountLast = req.user.lastName.toLowerCase().trim();
+      const accountPhone = normalize(req.user.artisanProfile?.whatsapp || "");
+
+      const bvnFirst = (bvnData.firstName || bvnData.first_name || "")
+        .toLowerCase()
+        .trim();
+      const bvnLast = (bvnData.lastName || bvnData.last_name || "")
+        .toLowerCase()
+        .trim();
+      const bvnPhone = normalize(
+        bvnData.phoneNumber || bvnData.phone_number || "",
+      );
+
+      // 4. Strict Name Match
+      if (accountFirst !== bvnFirst || accountLast !== bvnLast) {
+        return res.status(400).json({
+          msg: `Name Mismatch! The BVN belongs to ${bvnFirst} ${bvnLast}, not ${req.user.firstName} ${req.user.lastName}.`,
+        });
+      }
+
+      // 5. Phone Match
+      if (accountPhone !== bvnPhone) {
+        return res.status(400).json({
+          msg: `Phone Mismatch! The phone number on your BVN does not match the one on your profile.`,
+        });
+      }
+
+      // 6. Success: Everything aligns
+      res
+        .status(200)
+        .json({ msg: "Identity & Phone confirmed. Proceed to payment." });
+    } catch (err) {
+      console.error("BVN Verification Error:", err.message);
+      res
+        .status(500)
+        .json({ msg: err.message || "Identity verification failed." });
+    }
+  },
+);
 
 router.post("/", protect, authorize("artisan"), async (req, res) => {
-  const { reference, type, nin } = req.body;
+  // Destructure what we need; NIN is ignored/not saved for security as per your notes
+  const { reference, type } = req.body;
 
   try {
     // 1. Verify Payment with Paystack
     const response = await axios.get(
       `https://api.paystack.co/transaction/verify/${reference}`,
       {
-        headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}` },
+        headers: {
+          Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+        },
       },
     );
 
-    if (response.data.data.status === "success") {
-      let update = {};
-
-      if (type === "pro") {
-        update = { "artisanProfile.subscriptionTier": "pro" };
-
-        // Inside your payment controller (where you verify Paystack)
-        const handleSubscriptionSuccess = async (userId) => {
-          const expiryDate = new Date();
-          expiryDate.setDate(expiryDate.getDate() + 30); // Sets date to 30 days from now
-
-          await User.findByIdAndUpdate(userId, {
-            "artisanProfile.subscriptionTier": "pro",
-            "artisanProfile.proExpiresAt": expiryDate,
-          });
-        };
-
-        // inside your route handler
-        await handleSubscriptionSuccess(req.user._id);
-        res.json({ msg: "Payment verified and Pro status activated" });
-      } else if (type === "verified") {
-        // 2. Perform one last Name Match check before upgrading
-        // (This prevents users from skipping the Modal's pre-check)
-
-        // MOCK: Replace with your real identity API call
-        const { firstName, lastName } = { firstName: "John", lastName: "Doe" };
-
-        const isMatch =
-          req.user.firstName.toLowerCase().trim() ===
-            firstName.toLowerCase().trim() &&
-          req.user.lastName.toLowerCase().trim() ===
-            lastName.toLowerCase().trim();
-
-        if (!isMatch) {
-          return res
-            .status(400)
-            .json({ msg: "Identity verification failed. Name mismatch." });
-        }
-
-        // 3. SET VERIFIED BUT DO NOT SAVE THE NIN
-        update = { "artisanProfile.isVerified": true };
-      }
-
-      const updatedUser = await User.findByIdAndUpdate(
-        req.user.id,
-        { $set: update },
-        { new: true },
-      );
-
-      // Return the updated user so the frontend can sync immediately
-      return res.json({
-        msg: `Successfully upgraded to ${type}!`,
-        user: updatedUser,
-      });
+    if (response.data.data.status !== "success") {
+      return res.status(400).json({ msg: "Payment verification failed" });
     }
 
-    res.status(400).json({ msg: "Payment verification failed" });
+    let update = {};
+
+    // 2. Handle Logic based on Subscription Type
+    if (type === "pro") {
+      const expiryDate = new Date();
+      expiryDate.setDate(expiryDate.getDate() + 30);
+
+      update = {
+        "artisanProfile.subscriptionTier": "pro",
+        "artisanProfile.proExpiresAt": expiryDate,
+      };
+    } else if (type === "verified") {
+      // Perform Name Match check (Mocking identity API response)
+      // Replace this with your actual identity verification service call
+      const { firstName, lastName } = { firstName: "John", lastName: "Doe" };
+
+      const isMatch =
+        req.user.firstName.toLowerCase().trim() ===
+          firstName.toLowerCase().trim() &&
+        req.user.lastName.toLowerCase().trim() ===
+          lastName.toLowerCase().trim();
+
+      if (!isMatch) {
+        return res
+          .status(400)
+          .json({ msg: "Identity verification failed. Name mismatch." });
+      }
+
+      update = { "artisanProfile.isVerified": true };
+    }
+
+    // 3. Update Database once with the 'update' object built above
+    const updatedUser = await User.findByIdAndUpdate(
+      req.user._id,
+      { $set: update },
+      { new: true },
+    );
+
+    return res.json({
+      msg: `Successfully upgraded to ${type}!`,
+      user: updatedUser,
+    });
   } catch (err) {
-    res.status(500).json({ msg: "Server error during verification" });
+    console.error(err.message);
+    res.status(500).send("Server Error");
   }
 });
-
-router.post(
-  "/verify-nin-only",
-  protect,
-  authorize("artisan"),
-  async (req, res) => {
-    const { nin } = req.body;
-
-    if (!nin || nin.length !== 11) {
-      return res
-        .status(400)
-        .json({ msg: "Please enter a valid 11-digit NIN." });
-    }
-
-    try {
-      // 1. CALL EXTERNAL IDENTITY API (e.g., Prembly, VerifyMe, etc.)
-      // For development, you can mock this response.
-      /*
-    const identityRes = await axios.post("https://api.provider.com/nin", { nin }, {
-      headers: { Authorization: `Bearer ${process.env.IDENTITY_KEY}` }
-    });
-    const { firstName, lastName } = identityRes.data;
-    */
-
-      // MOCK DATA FOR TESTING:
-      const mockNINData = { firstName: "Chibueze", lastName: "Osuoji" };
-      const { firstName, lastName } = mockNINData;
-
-      // 2. COMPARE WITH ACCOUNT DATA
-      const accountFirst = req.user.firstName.toLowerCase().trim();
-      const accountLast = req.user.lastName.toLowerCase().trim();
-      const ninFirst = firstName.toLowerCase().trim();
-      const ninLast = lastName.toLowerCase().trim();
-
-      // Check if the names match
-      if (accountFirst !== ninFirst || accountLast !== ninLast) {
-        return res.status(400).json({
-          msg: `Name Mismatch! The NIN belongs to ${firstName} ${lastName}, but your account is ${req.user.firstName} ${req.user.lastName}.`,
-        });
-      }
-
-      // 3. IF MATCH: Send success (Do NOT update DB yet, they haven't paid!)
-      res.status(200).json({ msg: "Identity confirmed. Proceed to payment." });
-    } catch (err) {
-      console.error("NIN Verification Error:", err.message);
-      res
-        .status(500)
-        .json({ msg: "Identity server is down. Please try again later." });
-    }
-  },
-);
 
 export default router;
