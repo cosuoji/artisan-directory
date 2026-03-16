@@ -226,7 +226,7 @@ router.post(
         .cookie("token", token, {
           httpOnly: true, // Prevents JS access (The most important part!)
           secure: true, // Ensures cookie is sent over HTTPS only
-          sameSite: "Strict", // Prevents CSRF attacks
+          sameSite: "none", // Prevents CSRF attacks
           maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
         })
         .json({

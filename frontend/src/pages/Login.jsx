@@ -29,6 +29,8 @@ const Login = () => {
 
       toast.success("Welcome back!");
 
+      console.log(res.data.user);
+
       // 3. Role-based redirection
       const userRole = res.data.user.role;
       if (userRole === "artisan") {

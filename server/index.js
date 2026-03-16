@@ -26,24 +26,31 @@ app.set("trust proxy", 1); // Crucial for Render/Netlify/Cloudflare
 //
 
 const allowedOrigins = [
-  "http://localhost:5173", // Local development
-  "https://www.abegfix.com", // Production
-  "http://abegfix.com",
+  "http://localhost:5173",
+  "https://abegfix.com",
+  "https://www.abegfix.com",
+  "https://theartisanhub.onrender.com", // Add your backend URL just in case
 ];
 
 app.use(
   cors({
     origin: function (origin, callback) {
-      // Allow requests with no origin (like mobile apps or curl requests)
+      // Log the origin to Render logs so we can see the culprit
+      console.log("Incoming Origin:", origin);
+
+      // Allow requests with no origin (like mobile apps or Postman)
       if (!origin) return callback(null, true);
 
-      if (allowedOrigins.indexOf(origin) !== -1) {
+      if (allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
+        console.error(`CORS Blocked: ${origin} is not in allowedOrigins`);
         callback(new Error("Not allowed by CORS"));
       }
     },
     credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "Cookie"],
   }),
 );
 
