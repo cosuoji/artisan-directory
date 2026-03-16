@@ -4,7 +4,6 @@ import toast from "react-hot-toast";
 import { Link } from "react-router-dom";
 import BackToTopButton from "../components/BackToTopButton";
 import useSEO from "../hooks/useSEO";
-import { useAuth } from "../context/AuthContext";
 
 const Directory = () => {
   const [artisans, setArtisans] = useState([]);
@@ -12,7 +11,6 @@ const Directory = () => {
   const [favorites, setFavorites] = useState([]);
   const [showFilters, setShowFilters] = useState(false);
   const [user, setUser] = useState(null); // Added user profile state
-  const { user: authUser } = useAuth(); // Rename to avoid conflict with 'user' state
 
   // --- FILTER STATES ---
   const [searchTerm, setSearchTerm] = useState("");
@@ -50,19 +48,22 @@ const Directory = () => {
   }, [userLocation, user]); // Refetch if live GPS or user profile loads
 
   const fetchUserProfile = async () => {
-    // 1. Check if the user is authenticated via Context state
-    if (!user) {
-      console.log("No user in context, skipping profile fetch.");
+    // 1. Check if we even have a token locally
+    const token = localStorage.getItem("token");
+
+    // 2. If no token exists, silently exit the function. Do not call the API.
+    if (!token) {
+      console.log("No token found, skipping profile fetch for unlogged user.");
       return;
     }
 
     try {
-      // 2. We already have the user in context, but if you need
-      // fresh favorites/data, it's safe to call /me
+      // 3. We have a token, so it's safe to ask the server for data
       const res = await API.get("/auth/me");
+      setUser(res.data);
       setFavorites(res.data.favorites || []);
     } catch (err) {
-      console.log("Session expired");
+      console.log("Not logged in or session expired");
     }
   };
 

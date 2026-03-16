@@ -34,6 +34,7 @@ const ArtisanDashboard = () => {
   const currentPortfolioCount = profileData.portfolio?.length || 0;
   const isVerified = user?.artisanProfile?.isVerified;
 
+  console.log(user);
   useSEO({
     title: user
       ? `${user.firstName} - ${user.artisanProfile.category} | Artisan Dashboard`
