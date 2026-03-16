@@ -62,11 +62,7 @@ const Navbar = () => {
                 )}
 
                 <Link
-                  to={
-                    user?.role === "artisan"
-                      ? "/artisan-dashboard"
-                      : "/customer-profile"
-                  }
+                  to={getProfileRoute()}
                   className="text-gray-600 hover:text-blue-700 text-sm md:text-base font-medium"
                 >
                   Profile
