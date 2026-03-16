@@ -450,7 +450,7 @@ const ArtisanDashboard = () => {
                   onChange={(e) =>
                     setProfileData({ ...profileData, whatsapp: e.target.value })
                   }
-                  placeholder="23480..."
+                  placeholder="080..."
                   className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
                 />
               </div>

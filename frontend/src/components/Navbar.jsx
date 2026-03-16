@@ -8,10 +8,23 @@ const Navbar = () => {
   const { user, isAuthenticated, logout } = useAuth();
   const navigate = useNavigate();
 
+  const getProfileRoute = () => {
+    switch (user?.role) {
+      case "artisan":
+        return "/artisan-dashboard";
+      case "admin":
+        return "/admin-dashboard";
+      case "customer":
+        return "/customer-profile";
+      default:
+        return "/";
+    }
+  };
+
   const handleLogout = () => {
     logout(); // This clears context + localStorage in one go
     toast.success("Logged out successfully");
-    navigate("/");
+    navigate("/login");
   };
 
   return (

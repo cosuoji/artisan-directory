@@ -1,4 +1,5 @@
 import jwt from "jsonwebtoken";
+
 import User from "../models/User.js";
 
 export const protect = async (req, res, next) => {
@@ -10,6 +11,7 @@ export const protect = async (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
     req.user = await User.findById(decoded.id);
 
     if (!req.user) {
@@ -17,6 +19,7 @@ export const protect = async (req, res, next) => {
     }
 
     // --- ADDED: Block banned users instantly ---
+
     if (req.user.isBanned) {
       return res.status(403).json({
         msg: "Your account has been suspended. Please contact support.",
@@ -24,13 +27,16 @@ export const protect = async (req, res, next) => {
     }
 
     // ALLOW access to the verify-email route even if unverified
+
     // but BLOCK other routes
+
     if (
       !req.user.isEmailVerified &&
       !req.originalUrl.includes("verify-email")
     ) {
       return res.status(403).json({
         msg: "Please verify your email to continue.",
+
         unverified: true,
       });
     }
@@ -42,11 +48,13 @@ export const protect = async (req, res, next) => {
 };
 
 // Optional: Role-based middleware
+
 export const authorize = (...roles) => {
   return (req, res, next) => {
     if (!roles.includes(req.user.role)) {
       return res.status(403).json({ msg: "User role not authorized" });
     }
+
     next();
   };
 };

@@ -2,8 +2,6 @@ import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
 import mongoose from "mongoose";
-import cron from "node-cron";
-import User from "./models/User.js";
 import rateLimit from "express-rate-limit";
 
 //routes
@@ -22,41 +20,7 @@ const app = express();
 app.set("trust proxy", 1); // Crucial for Render/Netlify/Cloudflare
 
 // Middleware
-<<<<<<< HEAD
-//
-
-const allowedOrigins = [
-  "http://localhost:5173",
-  "https://abegfix.com",
-  "https://www.abegfix.com",
-  "https://theartisanhub.onrender.com", // Add your backend URL just in case
-];
-
-app.use(
-  cors({
-    origin: function (origin, callback) {
-      // Log the origin to Render logs so we can see the culprit
-      console.log("Incoming Origin:", origin);
-
-      // Allow requests with no origin (like mobile apps or Postman)
-      if (!origin) return callback(null, true);
-
-      if (allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        console.error(`CORS Blocked: ${origin} is not in allowedOrigins`);
-        callback(new Error("Not allowed by CORS"));
-      }
-    },
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "Cookie"],
-  }),
-);
-
-=======
 app.use(cors());
->>>>>>> parent of 8c6f9a5 (Switch to cookie-based auth and BVN verification)
 app.use(express.json()); // Body parser
 
 // Global limiter: Max 100 requests per 15 mins
@@ -85,6 +49,9 @@ mongoose
 initCronJobs();
 
 app.use("/api", globalLimiter);
+app.get("/", (req, res) => {
+  res.send("Abeg Fix API is running...");
+});
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/reviews", reviewRoutes);

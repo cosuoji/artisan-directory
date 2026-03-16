@@ -15,7 +15,7 @@ const UpgradeModal = ({
 }) => {
   // 1. HOOKS MUST BE AT THE TOP
   const [step, setStep] = useState("info");
-  const [nin, setNin] = useState("");
+  const [bvn, setBvn] = useState(""); // Changed from nin
   const [verifying, setVerifying] = useState(false);
 
   const paymentReference = useMemo(() => `REF_${Date.now()}`, [isOpen]);
@@ -39,21 +39,20 @@ const UpgradeModal = ({
   // 3. ACTION HANDLERS
   const handleNext = () => {
     if (type === "verified" && step === "info") {
-      setStep("nin");
+      setStep("bvn"); // Changed from "nin"
     } else {
       // For "pro" or other types, go straight to the payment confirmation step
       setStep("pay");
     }
   };
 
-  const handleNinVerify = async () => {
+  const handleBvnverify = async () => {
     setVerifying(true);
     try {
       // Simulate NIN verification delay
-      setTimeout(() => {
-        setStep("pay");
-        setVerifying(false);
-      }, 1500);
+      const res = await API.post("/payments/verify-bvn-only", { bvn });
+      toast.success(res.data.msg);
+      setStep("pay");
     } catch (error) {
       toast.error("NIN Verification Failed");
       setVerifying(false);
@@ -121,25 +120,27 @@ const UpgradeModal = ({
             </>
           )}
 
-          {step === "nin" && (
+          {step === "bvn" && (
             <div className="space-y-4">
               <label className="block text-xs font-black uppercase text-gray-400">
-                Enter 11-digit NIN
+                Enter 11-digit BVN
               </label>
               <input
                 type="text"
                 maxLength="11"
-                value={nin}
-                onChange={(e) => setNin(e.target.value)}
-                className="w-full p-4 border-2 border-gray-100 rounded-2xl font-bold tracking-[0.3em] text-center focus:border-green-500 outline-none transition"
+                value={bvn}
+                onChange={(e) => setBvn(e.target.value.replace(/\D/g, ""))} // Only allow numbers                className="w-full p-4 border-2 border-gray-100 rounded-2xl font-bold tracking-[0.3em] text-center focus:border-green-500 outline-none transition"
                 placeholder="00000000000"
               />
               <p className="text-[10px] text-gray-400 italic text-center">
-                *Must match: {userFirstName} {userLastName}
+                *Must exactly match: {userFirstName} {userLastName}
+              </p>
+              <p className="text-[10px] text-gray-400 italic text-center mt-1">
+                Dial *565*0# to check your BVN
               </p>
               <button
-                disabled={nin.length < 11 || verifying}
-                onClick={handleNinVerify}
+                disabled={bvn.length < 11 || verifying}
+                onClick={handleBvnverify}
                 className="w-full py-4 bg-green-600 text-white rounded-2xl font-black uppercase tracking-widest disabled:bg-gray-200"
               >
                 {verifying ? "Checking Identity..." : "Verify Identity"}
@@ -164,7 +165,7 @@ const UpgradeModal = ({
                       // Close modal first
                       onClose();
                       // Then run your dashboard update logic
-                      onSuccess(response, nin);
+                      onSuccess(response, bvn);
                     },
                     onClose: () => {
                       console.log("User closed the Paystack window");

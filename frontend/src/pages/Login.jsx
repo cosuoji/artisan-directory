@@ -1,40 +1,48 @@
 import React, { useState } from "react";
+
 import { useNavigate, Link } from "react-router-dom";
+
 import API from "../api/axios"; // Your custom Axios instance
+
 import toast from "react-hot-toast";
+
 import { useAuth } from "../context/AuthContext";
+
 import useSEO from "../hooks/useSEO";
 
 const Login = () => {
   const [loading, setLoading] = useState(false);
+
   const [email, setEmail] = useState("");
+
   const [password, setPassword] = useState("");
+
   const { login } = useAuth(); // <-- Grab the login function
+
   const navigate = useNavigate();
 
   useSEO({ title: "Login" });
 
   const handleLogin = async (e) => {
     e.preventDefault();
+
     setLoading(true);
 
     try {
       // 1. Send credentials
+
       const res = await API.post("/auth/login", { email, password });
 
       // 2. Use the Context Login (This handles storage + state)
+
       login(res.data.token, res.data.user);
 
       toast.success("Welcome back!");
 
-<<<<<<< HEAD
-      console.log(res.data.user);
-
-      // 3. Role-based redirection
-=======
       // 3. Role-based redirection (Use the role from res.data.user for consistency)
->>>>>>> parent of 8c6f9a5 (Switch to cookie-based auth and BVN verification)
+
       const userRole = res.data.user.role;
+
       if (userRole === "artisan") {
         navigate("/artisan-dashboard");
       } else {
@@ -42,6 +50,7 @@ const Login = () => {
       }
     } catch (err) {
       // Handle incorrect password or "user not found"
+
       toast.error(
         err.response?.data?.msg || "Login failed. Check your credentials.",
       );
@@ -54,6 +63,7 @@ const Login = () => {
     <div className="min-h-[80vh] flex flex-col justify-center py-12 px-6 bg-gray-50">
       <div className="max-w-md w-full mx-auto bg-white p-8 border border-gray-200 rounded-2xl shadow-sm">
         <h2 className="text-3xl font-bold text-gray-900 mb-2">Welcome Back</h2>
+
         <p className="text-gray-500 mb-8">
           Login to manage your profile and favorites.
         </p>
@@ -63,6 +73,7 @@ const Login = () => {
             <label className="block text-sm font-semibold text-gray-700 mb-2">
               Email Address
             </label>
+
             <input
               type="email"
               required
@@ -77,6 +88,7 @@ const Login = () => {
               <label className="text-sm font-semibold text-gray-700">
                 Password
               </label>
+
               <Link
                 to="/forgot-password"
                 className="text-xs text-blue-600 hover:underline"
@@ -84,6 +96,7 @@ const Login = () => {
                 Forgot Password?
               </Link>
             </div>
+
             <input
               type="password"
               required
@@ -105,7 +118,7 @@ const Login = () => {
         <div className="mt-8 pt-6 border-t border-gray-100 text-center text-sm text-gray-600">
           Don't have an account?{" "}
           <Link
-            to="/customer-signup"
+            to="/signup"
             className="text-blue-600 font-bold hover:underline"
           >
             Sign up here

@@ -183,12 +183,16 @@ router.post(
 // @desc    Authenticate user & get token
 router.post(
   "/login",
+
   [
     check("email", "Please include a valid email").isEmail(),
+
     check("password", "Password is required").exists(),
   ],
+
   async (req, res) => {
     const errors = validationResult(req);
+
     if (!errors.isEmpty()) {
       return res.status(400).json({ errors: errors.array() });
     }
@@ -197,48 +201,46 @@ router.post(
 
     try {
       // 1. Find user and EXPLICITLY include password if your model hides it by default
+
       const user = await User.findOne({ email: email.toLowerCase() }).select(
         "+password",
       );
 
       if (!user) {
         return res
+
           .status(401)
+
           .json({ msg: "Invalid credentials (User not found)" });
       }
 
       // 2. Check if verified (Don't let unverified users log in!)
+
       if (!user.isEmailVerified) {
         return res.status(403).json({ msg: "Please verify your email first." });
       }
 
       // 3. Compare hashed password
+
       const isMatch = await bcrypt.compare(password, user.password);
+
       if (!isMatch) {
         return res
+
           .status(401)
+
           .json({ msg: "Invalid credentials (Wrong password)" });
       }
 
       // 4. Generate Token and Send Response
+
       const token = generateToken(user._id);
-<<<<<<< HEAD
-      res
-        .cookie("token", token, {
-          httpOnly: true, // Prevents JS access (The most important part!)
-          secure: true, // Ensures cookie is sent over HTTPS only
-          sameSite: "none", // Prevents CSRF attacks
-          maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-        })
-        .json({
-          user: { id: user._id, role: user.role, firstName: user.firstName },
-        });
-=======
+
       res.json({
         token,
+
         user: { id: user._id, role: user.role, firstName: user.firstName },
       });
->>>>>>> parent of 8c6f9a5 (Switch to cookie-based auth and BVN verification)
     } catch (err) {
       res.status(500).send("Server error");
     }
