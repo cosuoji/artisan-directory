@@ -28,7 +28,7 @@ app.set("trust proxy", 1); // Crucial for Render/Netlify/Cloudflare
 const allowedOrigins = [
   "http://localhost:5173", // Local development
   "https://www.abegfix.com", // Production
-  "https://abegfix.vercel.app", // Staging/Preview
+  "http://abegfix.com",
 ];
 
 app.use(
