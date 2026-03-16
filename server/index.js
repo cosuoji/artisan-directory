@@ -5,6 +5,7 @@ import mongoose from "mongoose";
 import cron from "node-cron";
 import User from "./models/User.js";
 import rateLimit from "express-rate-limit";
+import cookieParser from "cookie-parser";
 
 //routes
 import authRoutes from "./routes/auth.js";
@@ -22,8 +23,32 @@ const app = express();
 app.set("trust proxy", 1); // Crucial for Render/Netlify/Cloudflare
 
 // Middleware
-app.use(cors());
+//
+
+const allowedOrigins = [
+  "http://localhost:5173", // Local development
+  "https://www.abegfix.com", // Production
+  "https://abegfix.vercel.app", // Staging/Preview
+];
+
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      // Allow requests with no origin (like mobile apps or curl requests)
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.indexOf(origin) !== -1) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true,
+  }),
+);
+
 app.use(express.json()); // Body parser
+app.use(cookieParser());
 
 // Global limiter: Max 100 requests per 15 mins
 const globalLimiter = rateLimit({
@@ -51,6 +76,9 @@ mongoose
 initCronJobs();
 
 app.use("/api", globalLimiter);
+app.get("/", (req, res) => {
+  res.send("Abeg Fix API is running...");
+});
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/reviews", reviewRoutes);

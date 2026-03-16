@@ -8,6 +8,19 @@ const Navbar = () => {
   const { user, isAuthenticated, logout } = useAuth();
   const navigate = useNavigate();
 
+  const getProfileRoute = () => {
+    switch (user?.role) {
+      case "artisan":
+        return "/artisan-dashboard";
+      case "admin":
+        return "/admin-dashboard";
+      case "customer":
+        return "/customer-profile";
+      default:
+        return "/";
+    }
+  };
+
   const handleLogout = () => {
     logout(); // This clears context + localStorage in one go
     toast.success("Logged out successfully");
@@ -49,11 +62,7 @@ const Navbar = () => {
                 )}
 
                 <Link
-                  to={
-                    user?.role === "artisan"
-                      ? "/artisan-dashboard"
-                      : "/customer-profile"
-                  }
+                  to={getProfileRoute()}
                   className="text-gray-600 hover:text-blue-700 text-sm md:text-base font-medium"
                 >
                   Profile

@@ -1,64 +1,52 @@
 import { createContext, useState, useEffect, useContext } from "react";
-import API from "../api/axios"; // Your axios instance
+import API from "../api/axios";
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [token, setToken] = useState(localStorage.getItem("token") || null);
-  const [loading, setLoading] = useState(true); // Prevents flickers on reload
+  const [loading, setLoading] = useState(true);
 
-  // Run this once when the app loads to check if they are already logged in
   useEffect(() => {
-    const verifyLoggedInUser = async () => {
-      if (!token) {
-        setLoading(false);
-        return;
-      }
-
+    const verifyUser = async () => {
       try {
-        // Optional: Hit a /me route on your backend to validate the token
-        // and get fresh user data (Name, Role, etc.)
-        // const res = await API.get("/auth/me");
-        // setUser(res.data.user);
-
-        // For now, if we have a token and role in storage, we trust it locally
-        setUser({ role: localStorage.getItem("user_role") });
+        // We call a "me" or "profile" endpoint.
+        // Since axios has withCredentials, the cookie is sent automatically.
+        const res = await API.get("/auth/me");
+        setUser(res.data.user);
       } catch (error) {
-        console.error("Token invalid or expired");
-        logout(); // Kick them out if token is dead
+        setUser(null);
       } finally {
         setLoading(false);
       }
     };
+    verifyUser();
+  }, []);
 
-    verifyLoggedInUser();
-  }, [token]);
-
-  // The function to call when they Verify OTP or Login
-  const login = (newToken, userData) => {
-    localStorage.setItem("token", newToken);
-    localStorage.setItem("user_role", userData.role);
-    setToken(newToken);
+  const login = (userData) => {
+    // We no longer manually store the token!
+    // The browser already saved the cookie from the login response.
     setUser(userData);
   };
 
-  // The function to call when they click Logout
-  const logout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user_role");
-    setToken(null);
-    setUser(null);
+  const logout = async () => {
+    try {
+      await API.post("/auth/logout"); // Tell backend to clear the cookie
+    } catch (err) {
+      console.error("Logout failed", err);
+    } finally {
+      setUser(null);
+      window.location.href = "/login";
+    }
   };
 
   return (
     <AuthContext.Provider
-      value={{ user, token, login, logout, isAuthenticated: !!token }}
+      value={{ user, login, logout, isAuthenticated: !!user }}
     >
       {!loading && children}
     </AuthContext.Provider>
   );
 };
 
-// Custom hook to make it easy to use anywhere
 export const useAuth = () => useContext(AuthContext);

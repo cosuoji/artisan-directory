@@ -1,36 +1,22 @@
 import axios from "axios";
 
-const API = axios.create({ baseURL: `${import.meta.env.VITE_APP_URL}/api` });
+const API = axios.create({
+  baseURL: `${import.meta.env.VITE_APP_URL}/api`,
+  withCredentials: true,
+});
 
-// Add a request interceptor
-API.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem("token");
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  },
-);
-
-// Add a response interceptor
+// Add a response interceptor to handle expired sessions
 API.interceptors.response.use(
   (response) => response,
   (error) => {
-    // 1. Grab the status and the current URL
-    const status = error.response ? error.response.status : null;
-    const isLoginRequest = error.config.url.includes("/auth/login");
-
-    // 2. Only redirect if it's a 401 AND we aren't already trying to login
-    if (status === 401 && !isLoginRequest) {
-      localStorage.removeItem("token");
-      // Use window.location only as a last resort for global auth failures
-      window.location.href = "/login";
+    // If the backend returns 401 (Unauthorized), the cookie is likely gone/expired
+    if (error.response && error.response.status === 401) {
+      // We don't need to manually clear storage anymore,
+      // just push the user to login.
+      if (!window.location.pathname.includes("/login")) {
+        window.location.href = "/login";
+      }
     }
-
     return Promise.reject(error);
   },
 );
