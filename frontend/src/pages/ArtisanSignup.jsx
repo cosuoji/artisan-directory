@@ -16,9 +16,35 @@ const ArtisanSignup = () => {
     category: "",
     whatsapp: "",
   });
+  const [showPassword, setShowPassword] = useState(false);
 
   useSEO({ title: "Artisan Signup" });
 
+  const getStrengthScore = (password) => {
+    let strength = 0;
+    if (password.length >= 6) strength++; // Basic requirement
+    if (password.length >= 10) strength++; // Bonus length
+    if (/[0-9]/.test(password)) strength++; // Has numbers
+    if (/[A-Z]/.test(password)) strength++; // Has Uppercase
+    if (/[^A-Za-z0-9]/.test(password)) strength++; // Has Special Char
+    return strength; // 0 to 5
+  };
+
+  const passwordStrength = getStrengthScore(formData.password);
+
+  // Map strength score to colors and labels
+  const strengthScore = getStrengthScore(formData.password);
+
+  const strengthConfig = [
+    { label: "Weak", color: "bg-red-500", width: "25%" },
+    { label: "Fair", color: "bg-orange-500", width: "50%" },
+    { label: "Good", color: "bg-blue-500", width: "75%" },
+    { label: "Strong", color: "bg-green-500", width: "100%" },
+  ];
+
+  // We subtract 1 to align score (1-4) with array index (0-3)
+  const currentLevel =
+    strengthScore > 0 ? strengthConfig[Math.min(strengthScore - 1, 3)] : null;
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -66,16 +92,46 @@ const ArtisanSignup = () => {
               setFormData({ ...formData, email: e.target.value })
             }
           />
-          <input
-            type="password"
-            placeholder="Password"
-            required
-            className="w-full p-3 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
-            onChange={(e) =>
-              setFormData({ ...formData, password: e.target.value })
-            }
-          />
-
+          <div className="relative">
+            <input
+              type={showPassword ? "text" : "password"}
+              placeholder="Password"
+              required
+              className="w-full p-3 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 pr-12"
+              onChange={(e) =>
+                setFormData({ ...formData, password: e.target.value })
+              }
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-xs"
+            >
+              {showPassword ? "HIDE" : "SHOW"}
+            </button>
+          </div>
+          <div className="mt-2">
+            {formData.password && (
+              <>
+                <div className="flex justify-between mb-1">
+                  <span className="text-[10px] font-bold text-gray-400 uppercase">
+                    Strength
+                  </span>
+                  <span
+                    className={`text-[10px] font-bold uppercase ${currentLevel?.color.replace("bg-", "text-")}`}
+                  >
+                    {currentLevel?.label}
+                  </span>
+                </div>
+                <div className="h-1 w-full bg-gray-100 rounded-full">
+                  <div
+                    className={`h-full transition-all duration-300 rounded-full ${currentLevel?.color}`}
+                    style={{ width: currentLevel?.width }}
+                  />
+                </div>
+              </>
+            )}
+          </div>
           <div className="grid grid-cols-2 gap-4">
             <input
               type="text"
@@ -116,7 +172,7 @@ const ArtisanSignup = () => {
           />
           <input
             type="text"
-            placeholder="WhatsApp Number (e.g. 080123...) || No "
+            placeholder="WhatsApp Number (e.g. 080123...) "
             required
             className="w-full p-3 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
             onChange={(e) =>

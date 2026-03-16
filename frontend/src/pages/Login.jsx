@@ -1,38 +1,26 @@
 import React, { useState } from "react";
-
 import { useNavigate, Link } from "react-router-dom";
-
 import API from "../api/axios"; // Your custom Axios instance
-
 import toast from "react-hot-toast";
-
 import { useAuth } from "../context/AuthContext";
-
 import useSEO from "../hooks/useSEO";
 
 const Login = () => {
   const [loading, setLoading] = useState(false);
-
   const [email, setEmail] = useState("");
-
   const [password, setPassword] = useState("");
-
   const { login } = useAuth(); // <-- Grab the login function
-
   const navigate = useNavigate();
+  const [showPassword, setShowPassword] = useState(false); // NEW STATE
 
   useSEO({ title: "Login" });
 
   const handleLogin = async (e) => {
     e.preventDefault();
-
     setLoading(true);
-
     try {
       // 1. Send credentials
-
       const res = await API.post("/auth/login", { email, password });
-
       // 2. Use the Context Login (This handles storage + state)
 
       login(res.data.token, res.data.user);
@@ -82,28 +70,38 @@ const Login = () => {
               onChange={(e) => setEmail(e.target.value)}
             />
           </div>
-
           <div>
             <div className="flex justify-between mb-2">
               <label className="text-sm font-semibold text-gray-700">
                 Password
               </label>
-
               <Link
                 to="/forgot-password"
-                className="text-xs text-blue-600 hover:underline"
+                size="xs"
+                className="text-blue-600 hover:underline"
               >
                 Forgot Password?
               </Link>
             </div>
 
-            <input
-              type="password"
-              required
-              placeholder="••••••••"
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition"
-              onChange={(e) => setPassword(e.target.value)}
-            />
+            <div className="relative">
+              {" "}
+              {/* NEW WRAPPER */}
+              <input
+                type={showPassword ? "text" : "password"} // TOGGLE TYPE
+                required
+                placeholder="••••••••"
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition pr-12"
+                onChange={(e) => setPassword(e.target.value)}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-blue-600 text-xs font-bold uppercase"
+              >
+                {showPassword ? "Hide" : "Show"}
+              </button>
+            </div>
           </div>
 
           <button

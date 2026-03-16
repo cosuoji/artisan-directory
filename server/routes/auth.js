@@ -59,11 +59,6 @@ router.post(
 
       await user.save();
 
-      // Strictly tell Mongoose NOT to create this object
-      user.artisanProfile = undefined;
-
-      await user.save();
-
       // SEND THE EMAIL
       try {
         await sendEmail(
@@ -104,6 +99,7 @@ router.post(
     check("password", "Password must be 6+ characters").isLength({ min: 6 }),
     check("firstName", "First name is required").notEmpty().trim(),
     check("lastName", "Last name is required").notEmpty().trim(),
+    check("whatsapp", "WhatsApp number is required for artisans").notEmpty(),
   ],
   async (req, res) => {
     const errors = validationResult(req);
