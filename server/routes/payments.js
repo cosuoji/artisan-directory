@@ -2,6 +2,7 @@ import express from "express";
 import axios from "axios";
 import { protect, authorize } from "../middleware/auth.js";
 import User from "../models/User.js";
+import rateLimit from "express-rate-limit";
 import dotenv from "dotenv";
 dotenv.config();
 
@@ -43,9 +44,16 @@ const verifyBVNWithPrembly = async (bvn) => {
   }
 };
 
+const bvnLimit = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // Limit each IP to 5 requests per windowMs
+  message: "Too many BVN verification attempts. Please try again later.",
+});
+
 router.post(
   "/verify-bvn-only",
   protect,
+  bvnLimit,
   authorize("artisan"),
   async (req, res) => {
     const { bvn } = req.body;
@@ -99,9 +107,24 @@ router.post(
         .json({ msg: "Identity & Phone confirmed. Proceed to payment." });
     } catch (err) {
       console.error("BVN Verification Error:", err.message);
+
+      // Check if it's an Axios error with a response from Prembly
+      if (err.response) {
+        const externalStatus = err.response.status;
+        const externalMsg =
+          err.response.data?.detail || "Identity service is temporarily down.";
+
+        // Pass the actual status (like 504 or 503) to your frontend
+        return res.status(externalStatus).json({
+          msg: externalMsg,
+          isProviderError: externalStatus >= 500, // Flag to tell frontend it's not the user's fault
+        });
+      }
+
+      // Fallback for generic server errors (e.g., database issues)
       res
         .status(500)
-        .json({ msg: err.message || "Identity verification failed." });
+        .json({ msg: "An internal error occurred. Please try again." });
     }
   },
 );
@@ -139,7 +162,6 @@ router.post("/", protect, authorize("artisan"), async (req, res) => {
     } else if (type === "verified") {
       // Perform Name Match check (Mocking identity API response)
       // Replace this with your actual identity verification service call
-      const { firstName, lastName } = { firstName: "John", lastName: "Doe" };
 
       const isMatch =
         req.user.firstName.toLowerCase().trim() ===

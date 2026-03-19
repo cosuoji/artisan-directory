@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import useSEO from "../hooks/useSEO";
+import { ArtisanTiers } from "../components/Pricing";
 
 export default function Home() {
   useSEO({ title: "Hire Better. Faster." });
@@ -38,38 +39,7 @@ export default function Home() {
       </section>
 
       {/* BENTO FEATURE MENU */}
-      <section className="py-20 px-6 max-w-6xl mx-auto">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
-          {[
-            {
-              title: "Verified Artisans",
-              desc: "We verify identity (NIN), location & craftsmanship.",
-              span: "md:col-span-2",
-            },
-            {
-              title: "Local Experts",
-              desc: "Find artisans near your area instantly.",
-            },
-            {
-              title: "24/7 Support",
-              desc: "We’re here whenever you need help.",
-              span: "md:col-span-2",
-            },
-          ].map((box, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, y: 40 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.15, duration: 0.7 }}
-              viewport={{ once: true }}
-              className={`bg-white p-8 rounded-2xl shadow-lg border ${box.span}`}
-            >
-              <h3 className="text-2xl font-bold mb-2">{box.title}</h3>
-              <p className="text-gray-700 text-sm">{box.desc}</p>
-            </motion.div>
-          ))}
-        </div>
-      </section>
+      <ArtisanTiers />
     </main>
   );
 }

@@ -55,7 +55,19 @@ const UpgradeModal = ({
       toast.success(res.data.msg);
       setStep("pay");
     } catch (error) {
-      toast.error("Verification Failed");
+      const serverMsg = error.response?.data?.msg;
+      const isProviderDown = error.response?.data?.isProviderError;
+
+      if (isProviderDown) {
+        toast.error(
+          "National identity servers are currently offline. Your data is safe—please try again in a few minutes.",
+          {
+            duration: 6000, // Give them longer to read it
+          },
+        );
+      } else {
+        toast.error(serverMsg || "Verification Failed. Please check your BVN.");
+      }
     } finally {
       setVerifying(false);
     }
