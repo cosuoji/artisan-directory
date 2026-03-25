@@ -94,6 +94,15 @@ const ArtisanProfileView = () => {
     }
   };
 
+  // Add this helper at the top of your component file or in a utils folder
+  const getOptimizedUrl = (url, width = 600) => {
+    if (!url || !url.includes("cloudinary")) return url;
+
+    // This splits the URL and inserts the transformation parameters
+    // It changes .../upload/v123/... to .../upload/f_auto,q_auto,w_600/v123/...
+    return url.replace("/upload/", `/upload/f_auto,q_auto,w_${width}/`);
+  };
+
   if (loading)
     return (
       <div className="p-20 text-center animate-pulse font-bold text-gray-400 uppercase tracking-widest">
@@ -112,7 +121,16 @@ const ArtisanProfileView = () => {
         <div className="h-64 bg-[#1E3A8A] relative">
           <div className="absolute -bottom-16 left-8">
             <img
-              src={profile.profilePic || "https://via.placeholder.com/150"}
+              // 1. Apply the optimization helper with a smaller width (300px is plenty for a 128px UI)
+              // 2. We'll add 'c_fill,g_face' to ensure the artisan's face is centered automatically
+              src={
+                profile.profilePic
+                  ? profile.profilePic.replace(
+                      "/upload/",
+                      "/upload/f_auto,q_auto,w_300,h_300,c_fill,g_face/",
+                    )
+                  : "https://via.placeholder.com/300"
+              }
               alt={profile.businessName}
               className="w-32 h-32 rounded-3xl object-cover border-4 border-white shadow-xl bg-white"
             />
@@ -186,12 +204,14 @@ const ArtisanProfileView = () => {
                     {profile.portfolio.map((img, idx) => (
                       <div
                         key={idx}
-                        onClick={() => setLightboxIndex(idx)} // ADD CLICK HANDLER
-                        className="aspect-square rounded-2xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-md transition cursor-pointer" // ADDED cursor-pointer
+                        onClick={() => setLightboxIndex(idx)}
+                        className="aspect-square rounded-2xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-md transition cursor-pointer"
                       >
                         <img
-                          src={img}
+                          // Optimized for the grid (width 600 is plenty for mobile/web squares)
+                          src={getOptimizedUrl(img, 600)}
                           alt={`Work sample ${idx + 1}`}
+                          loading="lazy" // ONLY download when visible
                           className="w-full h-full object-cover hover:scale-105 transition duration-500"
                         />
                       </div>

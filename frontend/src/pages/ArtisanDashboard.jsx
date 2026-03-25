@@ -365,9 +365,18 @@ const ArtisanDashboard = () => {
               <div className="w-24 h-24 rounded-full bg-gray-50 border-2 border-gray-100 flex items-center justify-center overflow-hidden">
                 {profileData.profilePic ? (
                   <img
-                    src={profileData.profilePic}
-                    className="w-full h-full object-cover"
-                    alt="Profile"
+                    // 1. Apply the optimization helper with a smaller width (300px is plenty for a 128px UI)
+                    // 2. We'll add 'c_fill,g_face' to ensure the artisan's face is centered automatically
+                    src={
+                      profileData.profilePic
+                        ? profileData.profilePic.replace(
+                            "/upload/",
+                            "/upload/f_auto,q_auto,w_300,h_300,c_fill,g_face/",
+                          )
+                        : "https://via.placeholder.com/300"
+                    }
+                    alt={profileData.businessName}
+                    className="w-32 h-32 rounded-3xl object-cover border-4 border-white shadow-xl bg-white"
                   />
                 ) : (
                   <span className="text-gray-400 text-xs font-bold uppercase p-2 text-center">

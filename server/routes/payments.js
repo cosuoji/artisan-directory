@@ -9,7 +9,6 @@ dotenv.config();
 const router = express.Router();
 
 // routes/payments.js
-//
 
 // --- PREMBLY BVN HELPER (v1 API) ---
 const verifyBVNWithPrembly = async (bvn) => {
