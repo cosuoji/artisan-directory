@@ -13,8 +13,15 @@ import {
 } from "../controllers/authController.js";
 import { protect, authorize } from "../middleware/auth.js";
 import { generateToken } from "../utils/generateToken.js";
+import { v2 as cloudinary } from "cloudinary";
 
 const router = express.Router();
+
+cloudinary.config({
+  cloud_name: process.env.VITE_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
 // @route   POST api/auth/signup-customer
 router.post(
@@ -373,5 +380,38 @@ router.post("/resend-otp", async (req, res) => {
 router.put("/update-profile", protect, authorize("artisan"), updateProfile);
 router.post("/forgot-password", forgotPassword);
 router.post("/reset-password/:token", resetPassword); // Notice the :token param
+// @desc    Delete image from Cloudinary and MongoDB
+router.put("/delete-portfolio-image", protect, async (req, res) => {
+  const { imageUrl } = req.body;
+  const userId = req.user.id; // Assuming you have auth middleware
+
+  try {
+    // 1. Extract Public ID from the URL using Regex
+    // This finds everything between the version number (v12345/) and the file extension (.jpg)
+    const regex = /\/v\d+\/(.+)\./;
+    const match = imageUrl.match(regex);
+    const publicId = match ? match[1] : null;
+
+    if (publicId) {
+      // 2. Delete from Cloudinary
+      await cloudinary.uploader.destroy(publicId);
+    }
+
+    // 3. Remove from MongoDB using $pull
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { $pull: { "artisanProfile.portfolio": imageUrl } },
+      { new: true },
+    );
+
+    res.json({
+      msg: "Image deleted successfully",
+      portfolio: user.artisanProfile.portfolio,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Server Error");
+  }
+});
 
 export default router;

@@ -70,13 +70,13 @@ const Contact = () => {
                   <span className="text-2xl">📍</span>
                   <div>
                     <h4 className="font-semibold text-white">
-                      Office Location
+                      Office Location - Remote
                     </h4>
-                    <p className="text-blue-200 text-sm mt-1">
+                    {/* <p className="text-blue-200 text-sm mt-1">
                       124 Obafemi Awolowo Way,
                       <br />
                       Ikeja, Lagos, Nigeria.
-                    </p>
+                    </p>*/}
                   </div>
                 </div>
 
@@ -85,7 +85,7 @@ const Contact = () => {
                   <div>
                     <h4 className="font-semibold text-white">Phone</h4>
                     <p className="text-blue-200 text-sm mt-1">
-                      +234 (0) 801 234 5678
+                      +234 (0) 816 231 7196
                     </p>
                     <p className="text-blue-200 text-sm">
                       Mon-Fri from 8am to 5pm

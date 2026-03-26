@@ -8,11 +8,8 @@ dotenv.config();
 
 const router = express.Router();
 
-// routes/payments.js
-
 // --- PREMBLY BVN HELPER (v1 API) ---
 const verifyBVNWithPrembly = async (bvn) => {
-  // Updated URL from the latest 2026 docs
   const url = "https://api.prembly.com/verification/bvn";
 
   try {
@@ -21,17 +18,14 @@ const verifyBVNWithPrembly = async (bvn) => {
       { number: bvn.toString() },
       {
         headers: {
-          "x-api-key": process.env.PREMBLY_SECRET_KEY, // Your Secret Key
+          "x-api-key": process.env.PREMBLY_SECRET_KEY,
           "Content-Type": "application/json",
           Accept: "application/json",
         },
       },
     );
-    console.log(response.data);
-    // According to the 201 result you found:
-    // response.data.status is true and response_code is "00"
     if (response.data.status && response.data.response_code === "00") {
-      return response.data.data; // This contains firstName, lastName, etc.
+      return response.data.data;
     } else {
       throw new Error(response.data.detail || "BVN validation failed");
     }
@@ -44,8 +38,8 @@ const verifyBVNWithPrembly = async (bvn) => {
 };
 
 const bvnLimit = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // Limit each IP to 5 requests per windowMs
+  windowMs: 15 * 60 * 1000,
+  max: 5,
   message: "Too many BVN verification attempts. Please try again later.",
 });
 
@@ -64,14 +58,11 @@ router.post(
     }
 
     try {
-      // 1. Call Prembly
       const bvnData = await verifyBVNWithPrembly(bvn);
 
-      // 2. Normalize Function (Extracts last 10 digits to avoid +234 vs 080 issues)
       const normalize = (phone) =>
         phone.toString().replace(/\D/g, "").slice(-10);
 
-      // 3. Prepare Data for Comparison
       const accountFirst = req.user.firstName.toLowerCase().trim();
       const accountLast = req.user.lastName.toLowerCase().trim();
       const accountPhone = normalize(req.user.artisanProfile?.whatsapp || "");
@@ -86,41 +77,35 @@ router.post(
         bvnData.phoneNumber || bvnData.phone_number || "",
       );
 
-      // 4. Strict Name Match
       if (accountFirst !== bvnFirst || accountLast !== bvnLast) {
         return res.status(400).json({
           msg: `Name Mismatch! The BVN belongs to ${bvnFirst} ${bvnLast}, not ${req.user.firstName} ${req.user.lastName}.`,
         });
       }
 
-      // 5. Phone Match
       if (accountPhone !== bvnPhone) {
         return res.status(400).json({
           msg: `Phone Mismatch! The phone number on your BVN does not match the one on your profile.`,
         });
       }
 
-      // 6. Success: Everything aligns
       res
         .status(200)
         .json({ msg: "Identity & Phone confirmed. Proceed to payment." });
     } catch (err) {
       console.error("BVN Verification Error:", err.message);
 
-      // Check if it's an Axios error with a response from Prembly
       if (err.response) {
         const externalStatus = err.response.status;
         const externalMsg =
           err.response.data?.detail || "Identity service is temporarily down.";
 
-        // Pass the actual status (like 504 or 503) to your frontend
         return res.status(externalStatus).json({
           msg: externalMsg,
-          isProviderError: externalStatus >= 500, // Flag to tell frontend it's not the user's fault
+          isProviderError: externalStatus >= 500,
         });
       }
 
-      // Fallback for generic server errors (e.g., database issues)
       res
         .status(500)
         .json({ msg: "An internal error occurred. Please try again." });
@@ -128,9 +113,11 @@ router.post(
   },
 );
 
-router.post("/", protect, authorize("artisan"), async (req, res) => {
-  // Destructure what we need; NIN is ignored/not saved for security as per your notes
-  const { reference, type } = req.body;
+// --- MAIN PAYMENT VERIFICATION ROUTE ---
+// Removed authorize("artisan") so Customers can upgrade to Premium too
+router.post("/", protect, async (req, res) => {
+  // Extracted firstName and lastName here to prevent ReferenceErrors in the "verified" block
+  const { reference, type, firstName, lastName } = req.body;
 
   try {
     // 1. Verify Payment with Paystack
@@ -148,33 +135,44 @@ router.post("/", protect, authorize("artisan"), async (req, res) => {
     }
 
     let update = {};
+    const expiryDate = new Date();
+    expiryDate.setDate(expiryDate.getDate() + 30); // 30 days from now for both Pro and Premium
 
     // 2. Handle Logic based on Subscription Type
     if (type === "pro") {
-      const expiryDate = new Date();
-      expiryDate.setDate(expiryDate.getDate() + 30);
-
       update = {
         "artisanProfile.subscriptionTier": "pro",
         "artisanProfile.proExpiresAt": expiryDate,
       };
     } else if (type === "verified") {
-      // Perform Name Match check (Mocking identity API response)
-      // Replace this with your actual identity verification service call
+      // Identity verification fallback check
+      if (firstName && lastName) {
+        const isMatch =
+          req.user.firstName.toLowerCase().trim() ===
+            firstName.toLowerCase().trim() &&
+          req.user.lastName.toLowerCase().trim() ===
+            lastName.toLowerCase().trim();
 
-      const isMatch =
-        req.user.firstName.toLowerCase().trim() ===
-          firstName.toLowerCase().trim() &&
-        req.user.lastName.toLowerCase().trim() ===
-          lastName.toLowerCase().trim();
-
-      if (!isMatch) {
-        return res
-          .status(400)
-          .json({ msg: "Identity verification failed. Name mismatch." });
+        if (!isMatch) {
+          return res
+            .status(400)
+            .json({ msg: "Identity verification failed. Name mismatch." });
+        }
       }
 
       update = { "artisanProfile.isVerified": true };
+    } else if (type === "premium") {
+      // NEW: Customer Premium Logic
+      if (req.user.role !== "customer") {
+        return res
+          .status(403)
+          .json({ msg: "Only customers can upgrade to premium." });
+      }
+
+      update = {
+        "customerProfile.premiumStatus": "premium",
+        "customerProfile.premiumExpiresAt": expiryDate,
+      };
     }
 
     // 3. Update Database once with the 'update' object built above

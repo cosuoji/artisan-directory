@@ -26,7 +26,7 @@ app.use(express.json()); // Body parser
 // Global limiter: Max 100 requests per 15 mins
 const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 100,
+  max: 200,
   message: { msg: "Too many requests, please try again later." },
   standardHeaders: true, // Returns RateLimit-Limit headers
   legacyHeaders: false,

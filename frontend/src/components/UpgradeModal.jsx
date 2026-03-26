@@ -6,7 +6,7 @@ import toast from "react-hot-toast";
 const UpgradeModal = ({
   isOpen,
   onClose,
-  type,
+  type, // "pro", "verified", or "premium"
   userEmail,
   onSuccess,
   userId,
@@ -17,11 +17,45 @@ const UpgradeModal = ({
   const [bvn, setBvn] = useState("");
   const [verifying, setVerifying] = useState(false);
 
-  // Reset step when modal opens/closes or type changes
   useEffect(() => {
     if (isOpen) setStep("info");
     setBvn("");
   }, [isOpen, type]);
+
+  // Content configurations for all 3 tiers
+  const content = {
+    pro: {
+      title: "Upgrade to Pro",
+      price: 1500, // ₦1,500
+      displayPrice: "₦1,500",
+      color: "bg-blue-600",
+      benefits: ["15 Portfolio Slots", "Priority Search Ranking"],
+    },
+    verified: {
+      title: "Get Verified",
+      price: 1000, // ₦1,000
+      displayPrice: "₦1,000",
+      color: "bg-green-600",
+      benefits: [
+        "BVN Identity Badge",
+        "Higher Trust Score",
+        "Protection Policy",
+      ],
+    },
+    premium: {
+      title: "Go Premium",
+      price: 1000, // ₦500
+      displayPrice: "₦1000",
+      color: "bg-gray-900",
+      benefits: [
+        "Unlimited Contact Reveals",
+        "Save Unlimited Favorites",
+        "Ad-Free Experience",
+      ],
+    },
+  };
+
+  const active = content[type] || content.pro;
 
   const paymentReference = useMemo(() => `REF_${Date.now()}`, [isOpen]);
 
@@ -29,11 +63,11 @@ const UpgradeModal = ({
     () => ({
       reference: paymentReference,
       email: userEmail,
-      amount: 100000, // ₦1,000
+      amount: active.price * 100, // Paystack expects Kobo
       publicKey: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || "",
       metadata: { userId, upgradeType: type },
     }),
-    [paymentReference, userEmail, userId, type],
+    [paymentReference, userEmail, userId, type, active.price],
   );
 
   const initializePayment = usePaystackPayment(config);
@@ -48,138 +82,109 @@ const UpgradeModal = ({
     }
   };
 
-  const handleBvnverify = async () => {
+  const handleBvnVerify = async () => {
     setVerifying(true);
     try {
-      const res = await API.post("/payments/verify-bvn-only", { bvn });
-      toast.success(res.data.msg);
+      await API.post("/payments/verify-bvn-only", { bvn });
+      toast.success("Identity Confirmed!");
       setStep("pay");
     } catch (error) {
-      const serverMsg = error.response?.data?.msg;
-      const isProviderDown = error.response?.data?.isProviderError;
-
-      if (isProviderDown) {
-        toast.error(
-          "National identity servers are currently offline. Your data is safe—please try again in a few minutes.",
-          {
-            duration: 6000, // Give them longer to read it
-          },
-        );
-      } else {
-        toast.error(serverMsg || "Verification Failed. Please check your BVN.");
-      }
+      toast.error(error.response?.data?.msg || "Verification Failed.");
     } finally {
       setVerifying(false);
     }
   };
 
-  const content = {
-    pro: {
-      title: "Upgrade to Pro",
-      price: "₦1,000",
-      color: "bg-blue-600",
-      benefits: ["30 Portfolio Slots", "Priority Search", "Pro Badge"],
-    },
-    verified: {
-      title: "Get Verified",
-      price: "₦1,000",
-      color: "bg-green-600",
-      benefits: ["Trust Badge", "Background Check Status", "Protection"],
-    },
-  };
-
-  const active = content[type] || content.pro;
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-3xl max-w-md w-full overflow-hidden shadow-2xl">
-        <div className={`${active.color} p-8 text-white text-center`}>
-          <h2 className="text-2xl font-black uppercase tracking-tight">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-md p-4">
+      <div className="bg-white rounded-3xl max-w-sm w-full overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-300">
+        {/* Header Section */}
+        <div className={`${active.color} p-6 text-white text-center`}>
+          <h2 className="text-xl font-black uppercase tracking-tighter">
             {active.title}
           </h2>
-          <p className="text-4xl font-black mt-2">{active.price}</p>
+          <p className="text-4xl font-black mt-1 italic">
+            {active.displayPrice}
+          </p>
         </div>
 
-        <div className="p-8">
-          {/* STEP 1: BENEFITS */}
+        <div className="p-6">
+          {/* STEP 1: INFO */}
           {step === "info" && (
             <>
-              <ul className="space-y-4 mb-8">
+              <ul className="space-y-3 mb-6">
                 {active.benefits.map((b, i) => (
                   <li
                     key={i}
-                    className="flex items-center gap-3 text-gray-600 font-medium"
+                    className="flex items-center gap-3 text-sm text-gray-700 font-bold"
                   >
-                    <span className="text-green-500 font-bold">✓</span> {b}
+                    <span className="text-blue-500">★</span> {b}
                   </li>
                 ))}
               </ul>
               <button
                 onClick={handleNext}
-                className={`w-full py-4 rounded-2xl text-white font-black uppercase tracking-widest transition hover:scale-[1.02] ${active.color}`}
+                className={`w-full py-4 rounded-2xl text-white font-black uppercase tracking-widest ${active.color}`}
               >
                 Continue
               </button>
             </>
           )}
 
-          {/* STEP 2: BVN (Verified path only) */}
+          {/* STEP 2: BVN (Artisan only) */}
           {step === "bvn" && (
             <div className="space-y-4">
-              <label className="block text-xs font-black uppercase text-gray-400">
-                Enter 11-digit BVN
-              </label>
               <input
                 type="text"
                 maxLength="11"
                 value={bvn}
                 onChange={(e) => setBvn(e.target.value.replace(/\D/g, ""))}
-                className="w-full p-4 border-2 border-gray-100 rounded-2xl font-bold tracking-[0.3em] text-center focus:border-green-500 outline-none transition"
-                placeholder="00000000000"
+                className="w-full p-4 border-2 border-gray-100 rounded-2xl font-black text-center text-xl tracking-widest focus:border-green-500 outline-none"
+                placeholder="BVN NUMBER"
               />
-              <p className="text-[10px] text-gray-400 italic text-center">
-                *Must match: {userFirstName} {userLastName}
-              </p>
               <button
                 disabled={bvn.length < 11 || verifying}
-                onClick={handleBvnverify}
-                className="w-full py-4 bg-green-600 text-white rounded-2xl font-black uppercase tracking-widest disabled:bg-gray-200"
+                onClick={handleBvnVerify}
+                className="w-full py-4 bg-green-600 text-white rounded-2xl font-black uppercase tracking-widest disabled:opacity-50"
               >
-                {verifying ? "Checking..." : "Verify Identity"}
+                {verifying ? "Verifying..." : "Confirm Identity"}
               </button>
             </div>
           )}
 
-          {/* STEP 3: PAYMENT */}
+          {/* STEP 3: PAY */}
           {step === "pay" && (
             <div className="text-center">
-              <div className="mb-6 p-4 bg-green-50 rounded-2xl text-green-700 text-sm font-bold">
-                {type === "verified"
-                  ? "✓ Identity Confirmed"
-                  : "Ready to Upgrade"}
+              <div className="mb-6 p-4 bg-blue-50 rounded-2xl text-blue-800 text-xs font-black uppercase italic">
+                {type === "premium"
+                  ? "Ready for Unlimited Access"
+                  : "Ready for Priority Rankings?"}
               </div>
               <button
                 onClick={() => {
                   initializePayment({
-                    onSuccess: (response) => {
-                      onClose();
-                      onSuccess(response, bvn); // Correctly passing bvn here
+                    onSuccess: (res) => {
+                      // PASS THE FULL RESPONSE BACK FIRST
+                      // res contains { reference, status, trans, etc. }
+                      onSuccess(res, bvn);
+                      // The parent handlePaymentSuccess will now take over
+                      // and close the modal when it's ready.
                     },
                     onClose: () => onClose(),
                   });
                 }}
-                className="w-full py-4 bg-gray-900 text-white rounded-2xl font-black uppercase tracking-widest"
+                className="w-full py-4 bg-gray-900 text-white rounded-2xl font-black uppercase tracking-widest hover:bg-black transition-colors"
               >
-                Pay {active.price} Now
+                Pay {active.displayPrice}
               </button>
             </div>
           )}
 
           <button
             onClick={onClose}
-            className="w-full mt-4 text-gray-400 text-xs font-bold uppercase hover:text-gray-600"
+            className="w-full mt-4 text-gray-400 text-[10px] font-black uppercase"
           >
-            Maybe Later
+            Cancel
           </button>
         </div>
       </div>

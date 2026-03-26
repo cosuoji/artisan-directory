@@ -30,7 +30,7 @@ const ArtisanDashboard = () => {
 
   // Add this after your useState declarations
   const tier = user?.artisanProfile?.subscriptionTier || "free";
-  const maxPortfolioLimit = tier === "pro" ? 30 : 3;
+  const maxPortfolioLimit = tier === "pro" ? 15 : 3;
   const currentPortfolioCount = profileData.portfolio?.length || 0;
   const isVerified = user?.artisanProfile?.isVerified;
 
@@ -123,49 +123,85 @@ const ArtisanDashboard = () => {
   // --- CLOUDINARY WIDGET LOGIC ---
   const openCloudinaryWidget = (isProfilePic) => {
     if (!window.cloudinary) {
-      toast.error("Cloudinary not loaded. Please refresh the page.");
+      toast.error("Cloudinary not loaded.");
       return;
     }
 
-    // Calculate remaining slots based on Tier
     const remainingSlots = maxPortfolioLimit - currentPortfolioCount;
-
     if (!isProfilePic && remainingSlots <= 0) {
-      toast.error(
-        `You've reached your ${tier} limit. Upgrade to Pro for more slots!`,
-      );
+      toast.error("Limit reached!");
       return;
     }
+
+    let sessionUrls = [];
 
     const widget = window.cloudinary.createUploadWidget(
       {
         cloudName: import.meta.env.VITE_CLOUD_NAME,
         uploadPreset: import.meta.env.VITE_PRESET_NAME,
-        folder: `artisan_portfolios/${user._id}`,
+
+        // --- THE DYNAMIC FOLDER LOGIC ---
+        // This creates: abeg_fix/users/[USER_ID]/portfolio
+        // or: abeg_fix/users/[USER_ID]/profile_pic
+        folder: `abeg_fix/users/${user._id}/${isProfilePic ? "avatar" : "portfolio"}`,
+
+        // Adding tags makes searching/deleting via API or Console much easier later
+        tags: [
+          "artisan_upload",
+          user._id,
+          isProfilePic ? "profile" : "portfolio",
+        ],
+
         sources: ["local", "camera"],
         multiple: !isProfilePic,
-        // NEW: maxFiles is now dynamic based on tier and current count
         maxFiles: isProfilePic ? 1 : remainingSlots,
         cropping: isProfilePic,
         resourceType: "image",
         clientAllowedFormats: ["png", "jpg", "jpeg", "webp"],
       },
       (error, result) => {
-        if (!error && result && result.event === "success") {
-          const imageUrl = result.info.secure_url;
+        if (!error && result) {
+          if (result.event === "success") {
+            sessionUrls.push(result.info.secure_url);
 
-          // 1. Update the local state so the UI reflects the change immediately
-          const updatedPortfolio = [...(profileData.portfolio || []), imageUrl];
-          setProfileData((prev) => ({ ...prev, portfolio: updatedPortfolio }));
+            // If it's a profile pic, update local state immediately
+            if (isProfilePic) {
+              setProfileData((prev) => ({
+                ...prev,
+                profilePic: result.info.secure_url,
+              }));
+              toast.success("Profile photo updated!");
+            }
+          }
 
-          // 2. AUTO-SAVE: Push directly to the backend
-          if (!isProfilePic) {
+          // Handle batch portfolio save
+          if (
+            result.event === "queues-end" &&
+            !isProfilePic &&
+            sessionUrls.length > 0
+          ) {
+            const updatedPortfolio = [
+              ...(profileData.portfolio || []),
+              ...sessionUrls,
+            ];
+            setProfileData((prev) => ({
+              ...prev,
+              portfolio: updatedPortfolio,
+            }));
+
+            const saveToast = toast.loading(
+              `Syncing ${sessionUrls.length} new items...`,
+            );
+
             API.put("/auth/update-profile", {
               artisanProfile: { portfolio: updatedPortfolio },
             })
-              .then(() => toast.success("Work added and saved!"))
+              .then(() => {
+                toast.success("Portfolio synchronized!", { id: saveToast });
+                sessionUrls = [];
+              })
               .catch(() =>
-                toast.error("Image uploaded, but failed to save to profile."),
+                toast.error("Cloud sync failed.", { id: saveToast }),
               );
           }
         }
@@ -268,6 +304,26 @@ const ArtisanDashboard = () => {
 
   const daysLeft = getDaysRemaining();
   const isExpired = tier === "free" && user?.artisanProfile?.proExpiresAt;
+
+  const handleRemoveImage = async (imgUrl) => {
+    const deleteToast = toast.loading("Removing from Cloud...");
+
+    try {
+      const res = await API.put("/auth/delete-portfolio-image", {
+        imageUrl: imgUrl,
+      });
+
+      // Update local state with the new portfolio returned from backend
+      setProfileData((prev) => ({
+        ...prev,
+        portfolio: res.data.portfolio,
+      }));
+
+      toast.success("Permanently deleted!", { id: deleteToast });
+    } catch (err) {
+      toast.error("Failed to delete. Try again.", { id: deleteToast });
+    }
+  };
 
   if (loading && !user)
     return (
@@ -509,8 +565,8 @@ const ArtisanDashboard = () => {
                     className="text-[10px] font-black text-blue-600 uppercase tracking-widest hover:underline flex items-center gap-1"
                   >
                     {isExpired
-                      ? "🔄 Renew Pro to unlock your 30 slots"
-                      : "🚀 Go Pro for 30 slots"}
+                      ? "🔄 Renew Pro to unlock your 15 slots"
+                      : "🚀 Go Pro for 15 slots"}
                   </button>
                 )}
               </div>
@@ -529,14 +585,7 @@ const ArtisanDashboard = () => {
                   />
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
                     <button
-                      onClick={() =>
-                        setProfileData({
-                          ...profileData,
-                          portfolio: profileData.portfolio.filter(
-                            (_, i) => i !== idx,
-                          ),
-                        })
-                      }
+                      onClick={() => handleRemoveImage(imgUrl)}
                       className="bg-white text-red-500 p-2 rounded-full font-bold text-xs hover:bg-red-50"
                     >
                       Remove

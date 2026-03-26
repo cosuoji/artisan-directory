@@ -22,7 +22,8 @@ export default function FAQs() {
       </h2>
       <p className="mb-4">
         Search for artisans by category or location, view their profiles, and
-        contact them via the platform to discuss service details.
+        contact them via the the whatsapp number provided by the artisan to
+        discuss service details.
       </p>
 
       <h2 className="text-xl font-semibold mt-6 mb-3">
@@ -62,8 +63,8 @@ export default function FAQs() {
         7. Can I delete my account?
       </h2>
       <p className="mb-4">
-        Yes. You can request account deletion via your account settings or
-        contact privacy@abegfix.com for NDPR-compliant deletion.
+        Yes. You can request account deletion by contacting support@abegfix.com
+        for NDPR-compliant deletion.
       </p>
 
       <h2 className="text-xl font-semibold mt-6 mb-3">

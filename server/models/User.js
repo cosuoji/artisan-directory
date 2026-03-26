@@ -5,7 +5,7 @@ const { Schema, model } = mongoose;
 const portfolioLimit = function (val) {
   // 'this' refers to the user document being saved
   const tier = this.artisanProfile?.subscriptionTier || "free";
-  const limit = tier === "pro" ? 30 : 3;
+  const limit = tier === "pro" ? 15 : 3;
   return val.length <= limit;
 };
 const UserSchema = new Schema(
@@ -45,6 +45,20 @@ const UserSchema = new Schema(
           required: false,
         },
       },
+      premiumStatus: {
+        type: String,
+        enum: ["free", "premium"],
+        default: "free",
+      },
+      premiumExpiresAt: Date,
+      freeRevealsCount: {
+        type: Number,
+        default: 0,
+      },
+      lastRevealDate: Date,
+      revealedArtisansToday: [
+        { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+      ],
     },
 
     // Password Reset fields (Top level so both roles can use them)

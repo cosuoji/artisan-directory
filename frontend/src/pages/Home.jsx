@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import useSEO from "../hooks/useSEO";
 import { ArtisanTiers } from "../components/Pricing";
+import CustomerTiers from "../components/CustomerTiers";
 
 export default function Home() {
   useSEO({ title: "Hire Better. Faster." });
@@ -40,6 +41,7 @@ export default function Home() {
 
       {/* BENTO FEATURE MENU */}
       <ArtisanTiers />
+      <CustomerTiers />
     </main>
   );
 }

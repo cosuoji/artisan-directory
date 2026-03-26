@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import API from "../api/axios";
 import toast from "react-hot-toast";
 import useSEO from "../hooks/useSEO";
+import UpgradeModal from "../components/UpgradeModal";
 
 const ArtisanProfileView = () => {
   const { id } = useParams();
@@ -16,6 +17,12 @@ const ArtisanProfileView = () => {
   const [comment, setComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(-1);
+
+  // --- NEW STATE VARIABLES ---
+  const [revealLoading, setRevealLoading] = useState(false);
+  const [contactRevealed, setContactRevealed] = useState(false);
+  const [whatsappNumber, setWhatsappNumber] = useState("");
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   useSEO({
     title: artisan
@@ -94,6 +101,46 @@ const ArtisanProfileView = () => {
     }
   };
 
+  const handleRevealContact = async (targetArtisan) => {
+    // Fallback to the state artisan if none passed (for the payment success call)
+    const artisanToReveal = targetArtisan || artisan;
+
+    if (!artisanToReveal) return;
+
+    setRevealLoading(true);
+    try {
+      // 1. Call backend
+      const { data } = await API.post(
+        `/users/reveal-artisan/${artisanToReveal._id}`,
+      );
+
+      // 2. Update local state to show the number in the UI instead of the button
+      setWhatsappNumber(data.whatsapp);
+      setContactRevealed(true);
+
+      // 3. Construct WhatsApp Link
+      const message = encodeURIComponent(
+        `Hello ${artisanToReveal.artisanProfile?.businessName}, I found you on Abeg Fix.`,
+      );
+      const whatsappUrl = `https://wa.me/${data.whatsapp}?text=${message}`;
+
+      // 4. Open WhatsApp
+      window.open(whatsappUrl, "_blank");
+    } catch (err) {
+      const errorMsg = err.response?.data?.msg || "Daily limit reached.";
+
+      // Only show the modal if they are actually over the limit
+      if (err.response?.status === 403) {
+        toast.error(errorMsg);
+        setShowUpgradeModal(true);
+      } else {
+        toast.error("Could not reveal contact. Please try again.");
+      }
+    } finally {
+      setRevealLoading(false);
+    }
+  };
+
   // Add this helper at the top of your component file or in a utils folder
   const getOptimizedUrl = (url, width = 600) => {
     if (!url || !url.includes("cloudinary")) return url;
@@ -101,6 +148,41 @@ const ArtisanProfileView = () => {
     // This splits the URL and inserts the transformation parameters
     // It changes .../upload/v123/... to .../upload/f_auto,q_auto,w_600/v123/...
     return url.replace("/upload/", `/upload/f_auto,q_auto,w_${width}/`);
+  };
+
+  const handlePaymentSuccess = async (res) => {
+    const toastId = toast.loading("Confirming your Premium status...");
+
+    try {
+      // 1. Verify with your backend
+      // We use the reference Paystack just gave us
+      await API.post("/payments", {
+        reference: res.reference,
+        type: "premium",
+      });
+
+      // 2. Add a small artificial delay so the DB can 'breathe'
+      // and the user feels the 'processing' happening.
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
+      // 3. Close the modal NOW that we know the backend is updated
+      setShowUpgradeModal(false);
+
+      // 4. Fetch the fresh user data so 'currentUser' is now Premium
+      const userRes = await API.get("/auth/me");
+      setCurrentUser(userRes.data);
+
+      toast.success("Welcome to Premium!", { id: toastId });
+
+      // 5. Trigger the reveal automatically
+      // Because currentUser is now Premium, this call will succeed!
+      handleRevealContact();
+    } catch (err) {
+      console.error(err);
+      toast.error("Payment verified, but status sync failed. Please refresh.", {
+        id: toastId,
+      });
+    }
   };
 
   if (loading)
@@ -151,7 +233,7 @@ const ArtisanProfileView = () => {
                 {profile.isVerified && (
                   <span
                     className="bg-green-100 text-green-600 p-1 rounded-full flex items-center justify-center"
-                    title="NIN Verified"
+                    title="BVN Verified"
                   >
                     <svg
                       className="w-6 h-6"
@@ -172,14 +254,30 @@ const ArtisanProfileView = () => {
               </p>
             </div>
 
-            <a
-              href={`https://wa.me/${profile.whatsapp}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="bg-green-500 text-white px-8 py-4 rounded-2xl font-black uppercase tracking-widest hover:bg-green-600 transition shadow-lg shadow-green-100 flex items-center justify-center gap-2"
-            >
-              Contact on WhatsApp
-            </a>
+            <div className="mt-8 border-t pt-6">
+              <h3 className="text-lg font-black uppercase tracking-widest mb-4">
+                Contact Artisan
+              </h3>
+
+              {!contactRevealed ? (
+                <button
+                  onClick={() => handleRevealContact(artisan)}
+                  disabled={revealLoading}
+                  className="w-full md:w-auto px-8 py-4 bg-green-600 text-white rounded-2xl font-black uppercase tracking-widest hover:bg-green-700 transition disabled:opacity-50"
+                >
+                  {revealLoading ? "Unlocking..." : "Unlock WhatsApp Number"}
+                </button>
+              ) : (
+                <a
+                  href={`https://wa.me/${whatsappNumber}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center w-full md:w-auto px-8 py-4 bg-green-50 text-green-700 border-2 border-green-600 rounded-2xl font-black uppercase tracking-widest hover:bg-green-100 transition"
+                >
+                  Chat on WhatsApp ({whatsappNumber})
+                </a>
+              )}
+            </div>
           </div>
 
           <hr className="my-10 border-gray-100" />
@@ -420,6 +518,15 @@ const ArtisanProfileView = () => {
           </div>
         </div>
       )}
+
+      <UpgradeModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        type="premium"
+        userEmail={currentUser?.email} // Passed from your auth context
+        userId={currentUser?._id}
+        onSuccess={handlePaymentSuccess}
+      />
     </div>
   );
 };

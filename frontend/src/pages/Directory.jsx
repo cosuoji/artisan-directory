@@ -246,7 +246,7 @@ const Directory = () => {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+          <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
             {displayedArtisans.map((artisan) => {
               const isPro = artisan.artisanProfile?.subscriptionTier === "pro";
               const isVerified = artisan.artisanProfile?.isVerified;
@@ -354,14 +354,6 @@ const Directory = () => {
                       >
                         Profile
                       </Link>
-                      <a
-                        href={`https://wa.me/${artisan.artisanProfile?.whatsapp}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="px-3 py-2.5 border border-green-500 text-green-500 rounded-xl text-xs hover:bg:green-50 transition"
-                      >
-                        💬
-                      </a>
                     </div>
                   </div>
                 </div>

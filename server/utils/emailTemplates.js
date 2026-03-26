@@ -1,32 +1,57 @@
-export const welcomeTemplate = (firstName, otp, role) => `
-<div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: auto; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden;">
-  <div style="background-color: #1E3A8A; padding: 30px; text-align: center;">
-    <h1 style="color: white; margin: 0; font-size: 24px; letter-spacing: 2px;">ABEG FIX</h1>
-  </div>
-  <div style="padding: 40px 20px; color: #334155; line-height: 1.6;">
-    <h2 style="color: #1E3A8A;">Confirm your registration</h2>
-    <p>Hello <b>${firstName}</b>,</p>
-    <p>Thank you for joining Abeg Fix as a <b>${role}</b>. To secure your account and verify your email, please use the code below:</p>
+// Replace this with your actual Cloudinary URL
+const LOGO_URL =
+  "https://res.cloudinary.com/diwz3uvgw/image/upload/v1774534460/RE79T3F_a8s3kh.png";
 
-    <div style="background: #f8fafc; border: 2px dashed #cbd5e1; padding: 20px; text-align: center; margin: 30px 0; border-radius: 12px;">
-      <span style="font-size: 32px; font-weight: 900; letter-spacing: 8px; color: #1E3A8A;">${otp}</span>
+export const welcomeTemplate = (firstName, otp, role) => `
+<div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: auto; border: 1px solid #e2e8f0; border-radius: 24px; overflow: hidden; background-color: #ffffff;">
+  <div style="background-color: #1E3A8A; padding: 40px 20px; text-align: center;">
+    <img src="${LOGO_URL}" alt="Abeg Fix" style="width: 150px; height: auto; margin-bottom: 10px;">
+    <h1 style="color: white; margin: 0; font-size: 20px; letter-spacing: 4px; font-weight: 900; text-transform: uppercase;">Reliable Artisans</h1>
+  </div>
+
+  <div style="padding: 40px 30px; color: #334155; line-height: 1.8;">
+    <h2 style="color: #1E3A8A; font-size: 22px; font-weight: 800; margin-top: 0;">Welcome to the family!</h2>
+    <p style="font-size: 16px;">Hello <span style="color: #1E3A8A; font-weight: 700;">${firstName}</span>,</p>
+    <p>Thank you for joining Abeg Fix as a <b>${role === "artisan" ? "Professional Artisan" : "Customer"}</b>. We're excited to have you on board.</p>
+
+    <p style="margin-bottom: 5px;">To verify your email address, please use this security code:</p>
+    <div style="background: #f1f5f9; border: 2px solid #e2e8f0; padding: 25px; text-align: center; margin: 20px 0; border-radius: 20px;">
+      <span style="font-size: 36px; font-weight: 900; letter-spacing: 10px; color: #1E3A8A; font-family: monospace;">${otp}</span>
     </div>
 
-    <p style="font-size: 14px;">This code is valid for <b>10 minutes</b>. If you did not sign up for an Abeg Fix account, please ignore this email.</p>
+    <p style="font-size: 13px; color: #64748b; background: #fff7ed; padding: 15px; border-left: 4px solid #f97316; border-radius: 8px;">
+      <b>Note:</b> This code expires in 10 minutes. If you didn't create this account, you can safely ignore this message.
+    </p>
   </div>
-  <div style="background-color: #f1f5f9; padding: 20px; text-align: center; font-size: 12px; color: #64748b;">
-    &copy; 2026 Abeg Fix. Reliable Artisans across Lagos.
+
+  <div style="background-color: #f8fafc; padding: 30px; text-align: center; border-top: 1px solid #e2e8f0;">
+    <p style="font-size: 12px; color: #94a3b8; margin: 0;">&copy; 2026 Abeg Fix Nigeria. Connecting Lagos to quality service.</p>
   </div>
 </div>
 `;
 
 export const resetTemplate = (resetUrl) => `
-<div style="font-family: sans-serif; max-width: 600px; margin: auto; border: 1px solid #eee; padding: 20px; border-radius: 10px;">
-  <h2 style="color: #1E3A8A;">Reset Your Password</h2>
-  <p>You requested a password reset. Click the button below to choose a new one:</p>
-  <div style="text-align: center; margin: 30px 0;">
-    <a href="${resetUrl}" style="background: #1E3A8A; color: white; padding: 15px 25px; text-decoration: none; border-radius: 5px; font-weight: bold; text-transform: uppercase; font-size: 14px;">Reset Password</a>
+<div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: auto; border: 1px solid #e2e8f0; border-radius: 24px; overflow: hidden; background-color: #ffffff;">
+  <div style="background-color: #1E3A8A; padding: 40px 20px; text-align: center;">
+    <img src="${LOGO_URL}" alt="Abeg Fix" style="width: 120px; height: auto;">
   </div>
-  <p style="font-size: 12px; color: #666;">If you didn't request this, please ignore this email. The link is valid for 1 hour.</p>
+
+  <div style="padding: 40px 30px; text-align: center; color: #334155;">
+    <h2 style="color: #1E3A8A; font-size: 24px; font-weight: 800;">Password Reset</h2>
+    <p style="font-size: 16px; margin-bottom: 30px;">Forgot your password? No worries, it happens to the best of us. Click the button below to set a new one.</p>
+
+    <a href="${resetUrl}" style="background-color: #1E3A8A; color: #ffffff; padding: 18px 35px; text-decoration: none; border-radius: 14px; font-weight: 900; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; display: inline-block; box-shadow: 0 4px 6px -1px rgba(30, 58, 138, 0.2);">
+      Reset My Password
+    </a>
+
+    <p style="font-size: 12px; color: #94a3b8; margin-top: 40px; line-height: 1.5;">
+      This link is valid for <b>1 hour</b>.<br/>
+      If you didn't request a reset, please secure your account.
+    </p>
+  </div>
+
+  <div style="background-color: #f8fafc; padding: 20px; text-align: center; font-size: 11px; color: #cbd5e1;">
+    Abeg Fix &bull; Reliable Artisans &bull; Lagos, Nigeria
+  </div>
 </div>
 `;

@@ -95,11 +95,6 @@ const Footer = () => {
             <h4 className="text-white font-bold mb-4">Artisans</h4>
             <ul className="space-y-2">
               <li>
-                <Link to="/artisan-signup" className="hover:text-blue-400">
-                  Register as Artisan
-                </Link>
-              </li>
-              <li>
                 <Link to="/guidelines" className="hover:text-blue-400">
                   Community Guidelines
                 </Link>

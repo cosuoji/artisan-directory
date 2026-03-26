@@ -9,13 +9,8 @@ const tiers = [
     name: "Basic",
     price: "Free",
     description: "Start listing your services.",
-    features: [
-      "Public Profile",
-      "List 1 Category",
-      "Customer Contact Info",
-      "Standard Search Result",
-    ],
-    notIncluded: ["Verified Badge", "NIN/BVN Validation", "Priority Ranking"],
+    features: ["Public Profile", "List 1 Category", "Standard Search Results"],
+    notIncluded: ["Verified Badge", "BVN Validation", "Priority Ranking"],
     cta: "Get Started",
     style: "bg-white border-gray-200",
   },
@@ -27,7 +22,7 @@ const tiers = [
     icon: <ShieldCheck className="text-green-600" />,
     features: [
       "Everything in Basic",
-      "NIN/BVN Identity Badge",
+      "BVN Identity Badge",
       "Official 'Verified' Seal",
       "Higher Trust Score",
       "Trust-Based Search Filter",
@@ -46,8 +41,8 @@ const tiers = [
       "Everything in Verified",
       "Top-of-Search Ranking",
       "Unlimited Categories",
-      "Instant Lead Notifications",
       "Featured Profile Label",
+      "Up 15 portfolio upload slots",
     ],
     cta: "Go Pro Now",
     style: "bg-blue-600 text-white border-blue-700 shadow-xl",
@@ -68,7 +63,7 @@ export const ArtisanTiers = () => {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+      <div className="grid grid-cols-3 md:grid-cols-3 gap-8">
         {tiers.map((tier, i) => (
           <motion.div
             key={i}
