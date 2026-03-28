@@ -53,7 +53,8 @@ export const CustomerTiers = () => {
         </p>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+{/* CHANGE THIS LINE */}
+<div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         {customerTiers.map((tier, i) => (
           <motion.div
             key={i}
