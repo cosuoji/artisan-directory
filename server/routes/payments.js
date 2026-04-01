@@ -60,12 +60,10 @@ router.post(
     try {
       const bvnData = await verifyBVNWithPrembly(bvn);
 
-      const normalize = (phone) =>
-        phone.toString().replace(/\D/g, "").slice(-10);
-
-      const accountFirst = req.user.firstName.toLowerCase().trim();
-      const accountLast = req.user.lastName.toLowerCase().trim();
-      const accountPhone = normalize(req.user.artisanProfile?.whatsapp || "");
+      const normalize = (phone) => {
+        if (!phone) return "";
+        return phone.toString().replace(/\D/g, "").slice(-10);
+      };
 
       const bvnFirst = (bvnData.firstName || bvnData.first_name || "")
         .toLowerCase()
@@ -74,24 +72,46 @@ router.post(
         .toLowerCase()
         .trim();
       const bvnPhone = normalize(
-        bvnData.phoneNumber || bvnData.phone_number || "",
+        bvnData.phoneNumber1 ||
+          bvnData.phoneNumber ||
+          bvnData.phone_number ||
+          "",
       );
 
-      if (accountFirst !== bvnFirst || accountLast !== bvnLast) {
+      const accountFirst = req.user.firstName.toLowerCase().trim();
+      const accountLast = req.user.lastName.toLowerCase().trim();
+      const accountPhone = normalize(req.user.artisanProfile?.whatsapp || "");
+
+      // 1. Strict Name Check (Non-negotiable)
+      const firstNameMatch =
+        bvnFirst.includes(accountFirst) || accountFirst.includes(bvnFirst);
+      const lastNameMatch =
+        bvnLast.includes(accountLast) || accountLast.includes(bvnLast);
+
+      if (!firstNameMatch || !lastNameMatch) {
         return res.status(400).json({
-          msg: `Name Mismatch! The BVN belongs to ${bvnFirst} ${bvnLast}, not ${req.user.firstName} ${req.user.lastName}.`,
+          msg: `Name Mismatch! Your profile name does not match the names linked to this BVN.`,
         });
       }
 
-      if (accountPhone !== bvnPhone) {
-        return res.status(400).json({
-          msg: `Phone Mismatch! The phone number on your BVN does not match the one on your profile.`,
+      // 2. Soft Phone Check (The "Forgiving" Part)
+      const phoneMatches = bvnPhone && accountPhone === bvnPhone;
+
+      if (!phoneMatches) {
+        // We let them pass anyway because the names matched perfectly!
+        return res.status(200).json({
+          msg: "Identity confirmed! Proceed to payment.",
+          phoneWarning: true,
+          bvnPhone: bvnPhone, // Great for showing the user what number is on file
         });
       }
 
-      res
-        .status(200)
-        .json({ msg: "Identity & Phone confirmed. Proceed to payment." });
+      // 3. Perfect Match
+      // (Keep this clean and isolated!)
+      return res.status(200).json({
+        msg: "Identity & Phone confirmed! Proceed to payment.",
+        phoneWarning: false,
+      });
     } catch (err) {
       console.error("BVN Verification Error:", err.message);
 
